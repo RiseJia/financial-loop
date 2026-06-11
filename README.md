@@ -90,6 +90,7 @@ tests/             # 指标与信号的单元测试（离线合成数据）
 - [docs/backtesting.md](docs/backtesting.md) — 回测原理：策略的抽象、引擎会计、四大陷阱、事件研究
 - [docs/data_quality.md](docs/data_quality.md) — 数据质量解决方案：校验管线、降级、双源对账、诚实边界
 - [docs/ai_supply_chain.md](docs/ai_supply_chain.md) — AI 产业链方法论：上游「需求 >> 估值」的三层证据与风险排查
+- [docs/ai_supply_chain_map.md](docs/ai_supply_chain_map.md) — 产业链深度地图：细化到材料/元件级（ABF膜→T-glass、EML→InP衬底、变压器→电气钢），含瓶颈评分与需求证据
 
 ## 每日自动报告
 

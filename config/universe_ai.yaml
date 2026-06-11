@@ -1,50 +1,122 @@
-# AI 产业链 universe（美股可交易标的）
-# 结构：tier -> {ticker: 标签}
-# 上游 = 算力供给侧（芯片/设备/EDA/网络/电力/数据中心物理层）
-# 中游 = 算力运营与平台（云/超算租赁）
-# 下游 = 应用与变现
-#
-# 注意：列表本身就带选择偏差（都是已被市场识别的名字）。
-# 真正的「需求远大于估值」候选往往在边缘：二线设备、电力设备、
-# 散热、电源管理——筛选器的价值是用同一把尺子横向比较它们。
+# AI 产业链 universe（细粒度版，2026-06 调研，详见 docs/ai_supply_chain_map.md）
+# 结构：tier -> 子链 -> {ticker: 标签}；代码为 yfinance 兼容格式
+#   后缀：.T 东京 / .TW 台湾 / .TWO 台湾柜买 / .KS 首尔 / .HK 香港
+#         .AS 阿姆斯特丹 / .VI 维也纳 / .DE 德国 / .SZ 深圳 / .SW 瑞士
+# 注意：非美标的的 yfinance 基本面字段覆盖率较低（screener 的 coverage 列会反映）
+# 私有/退市的关键节点（不可投资，仅监控）：Shinko、JSR、Sibelco/Quartz Corp、
+#   Stäubli、Boyd、CoolIT、US Conec、SK Siltron
 
 upstream:
-  # --- 算力芯片与存储 ---
-  NVDA: GPU/加速计算
-  AMD: GPU/CPU 二供
-  AVGO: 定制ASIC/网络芯片
-  MRVL: 定制ASIC/光电互联
-  MU: HBM/存储
-  ARM: IP授权
-  QCOM: 端侧AI芯片
-  # --- 制造与设备 ---
-  TSM: 先进制程代工
-  ASML: 光刻机垄断
-  AMAT: 沉积/刻蚀设备
-  LRCX: 刻蚀设备
-  KLAC: 检测量测
-  TER: 测试设备
-  # --- EDA ---
-  SNPS: EDA/IP
-  CDNS: EDA
-  # --- 网络与光互联 ---
-  ANET: 数据中心交换机
-  COHR: 光模块/光器件
-  LITE: 光模块
-  CRDO: 高速互联
-  # --- 服务器与电力/散热基础设施 ---
-  SMCI: AI服务器
-  DELL: AI服务器
-  VRT: 电源/散热
-  ETN: 电力设备
-  PWR: 电网工程
-  # --- 电力供给 ---
-  VST: 电力(独立发电)
-  CEG: 电力(核电)
-  NRG: 电力
-  # --- 数据中心物理层 ---
-  DLR: 数据中心REIT
-  EQIX: 数据中心REIT
+  算力芯片:
+    NVDA: GPU
+    AMD: GPU二供
+    AVGO: 定制ASIC/交换芯片/EML
+    MRVL: 定制ASIC/光DSP
+    ARM: IP授权
+    QCOM: 端侧AI
+  先进封装与代工:
+    TSM: 代工+CoWoS垄断
+    AMKR: OSAT(亚利桑那NVDA/Apple)
+    ASX: OSAT日月光(CoWoS外溢)
+    2449.TW: KYEC(NVDA终测90%)
+  ABF载板与材料:
+    4062.T: Ibiden(NVDA载板主供)
+    3037.TW: Unimicron(GPU载板35%/ASIC50%)
+    8046.TW: 南亚电路板
+    ATS.VI: AT&S(AMD载板)
+    2802.T: Ajinomoto(ABF膜垄断95%)
+    3110.T: Nittobo(T-glass垄断90%)
+    011790.KS: SKC(Absolics玻璃基板)
+  封装设备与检测:
+    BESI.AS: BESI(混合键合/Micron独家TCB)
+    0522.HK: ASMPT(SK海力士TCB主供)
+    042700.KS: Hanmi(TC bonder)
+    KLIC: K&S(fluxless TCB)
+    CAMT: Camtek(HBM检测)
+    ONTO: Onto(检测量测)
+  HBM与存储:
+    000660.KS: SK海力士(HBM份额~50-57%)
+    005930.KS: 三星电子(HBM4追赶)
+    MU: 美光(HBM第三极)
+    WDC: nearline HDD
+    STX: nearline HDD
+    SNDK: 企业级闪存
+  硅片与晶圆材料:
+    4063.T: 信越化学(硅片28%+光刻胶)
+    3436.T: SUMCO(硅片24%)
+    6488.TWO: 环球晶圆
+    WAF.DE: Siltronic
+    6890.T: Ferrotec(石英坩埚)
+    4186.T: TOK(EUV光刻胶)
+    ENTG: Entegris(CMP/过滤)
+    LIN: 林德(特气)
+    APD: 空气化工(特气)
+  设备与测试:
+    ASML: 光刻垄断
+    AMAT: 沉积刻蚀
+    LRCX: 刻蚀
+    KLAC: 检测量测
+    TER: 测试机
+    6857.T: Advantest(AI测试机)
+  光互联:
+    LITE: Lumentum(200G EML唯一量产/NVDA入股)
+    COHR: Coherent(InP售罄至2027/NVDA入股)
+    AXTI: AXT(InP衬底35%/出口管制风险)
+    5802.T: 住友电工(InP衬底/EML)
+    300308.SZ: 中际旭创(光模块全球第一)
+    300502.SZ: 新易盛(光模块前三)
+    300394.SZ: 天孚通信(FAU/CPO无源)
+    AAOI: AOI光模块
+    FN: Fabrinet(光代工)
+    CRDO: Credo(AEC/LRO)
+    ALAB: Astera(PCIe/Scale-up互联)
+    ANET: Arista(AI交换机)
+    APH: 安费诺(连接器)
+    GLW: 康宁(光纤/玻璃)
+  电源与散热:
+    VRT: Vertiv(CDU/backlog+109%)
+    2308.TW: 台达电(AI服务器电源>60%)
+    2301.TW: 光宝科技(电源架)
+    VICR: Vicor(电源模块)
+    MPWR: MPS(VRM/格局变动中)
+    IFX.DE: 英飞凌(Blackwell VRM主供)
+    ON: onsemi(功率)
+    3017.TW: AVC奇鋐(冷板)
+    3324.TW: Auras双鸿(冷板manifold)
+    NVT: nVent(液冷配电)
+    MOD: Modine(散热)
+    PH: Parker(UQD快接头)
+  数据中心电力:
+    GEV: GE Vernova(变压器+燃机)
+    ETN: 伊顿(电气设备)
+    HUBB: Hubbell(电网设备)
+    POWL: Powell(开关设备小盘)
+    ENR.DE: 西门子能源
+    ABBN.SW: ABB
+    6501.T: 日立(变压器)
+    CLF: Cleveland-Cliffs(GOES电气钢美国唯一)
+    CAT: 卡特彼勒(备用电源)
+    CMI: 康明斯(发电机组)
+    BE: Bloom(燃料电池)
+    CEG: 星座能源(核电PPA)
+    VST: Vistra(电力)
+    TLN: Talen(核电)
+    BWXT: BWXT(核部件)
+    LEU: Centrus(HALEU浓缩独苗)
+    CCJ: Cameco(铀)
+  电气施工:
+    FIX: Comfort Systems(机电施工)
+    EME: EMCOR(电气施工)
+    IESC: IES(电气施工)
+    STRL: Sterling(场地工程)
+    DY: Dycom(光纤施工)
+  整机EMS:
+    SMCI: 超微
+    DELL: 戴尔
+    CLS: Celestica
+    2317.TW: 鸿海
+    2382.TW: 广达
+    6669.TW: 纬颖
 
 midstream:
   MSFT: Azure/OpenAI
@@ -53,6 +125,8 @@ midstream:
   META: 自用算力/Llama
   ORCL: OCI算力租赁
   CRWV: GPU云(CoreWeave)
+  DLR: 数据中心REIT
+  EQIX: 数据中心REIT
 
 downstream:
   PLTR: 企业AI平台

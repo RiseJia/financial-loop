@@ -40,13 +40,27 @@ def load_watchlist(path: str | Path | None = None) -> dict:
 def load_universe(name: str = "ai") -> dict[str, dict[str, str]]:
     """加载产业链 universe（config/universe_<name>.yaml）。
 
-    返回 {tier: {ticker: label}}；文件缺失返回空 dict。
+    支持两种格式并统一返回 {tier: {ticker: label}}：
+      扁平： tier -> {ticker: label}
+      嵌套： tier -> {子链: {ticker: label}}   （label 前缀子链名）
+    文件缺失返回空 dict。
     """
     path = repo_root() / "config" / f"universe_{name}.yaml"
     if not path.exists():
         return {}
     with open(path, encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
+        raw = yaml.safe_load(f) or {}
+    out: dict[str, dict[str, str]] = {}
+    for tier, members in raw.items():
+        flat: dict[str, str] = {}
+        for key, val in (members or {}).items():
+            if isinstance(val, dict):  # 子链分组
+                for ticker, label in val.items():
+                    flat[str(ticker)] = f"{key}·{label}"
+            else:
+                flat[str(key)] = str(val)
+        out[tier] = flat
+    return out
 
 
 def reports_dir() -> Path:

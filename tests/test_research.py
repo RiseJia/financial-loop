@@ -91,3 +91,27 @@ def test_quality_demo_runs_and_catches_all():
     assert "clean-fallback" in text          # 降级到了备源
     assert text.count("🚫") >= 3              # 至少三类结构性故障被拒绝
     assert "⚠️" in text                       # 统计类故障被警告
+
+
+# ---------------------------------------------------------------- universe 加载
+
+def test_load_universe_nested_flatten(tmp_path, monkeypatch):
+    import finloop.config as cfg
+    (tmp_path / "config").mkdir()
+    (tmp_path / "config" / "watchlist.yaml").write_text("tickers: [SPY]\n")
+    (tmp_path / "config" / "universe_test.yaml").write_text(
+        "upstream:\n"
+        "  封装:\n"
+        "    '4062.T': Ibiden\n"
+        "    AMKR: Amkor\n"
+        "  flat_direct: 直接标签\n"
+        "midstream:\n"
+        "  MSFT: Azure\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(cfg, "repo_root", lambda: tmp_path)
+    uni = cfg.load_universe("test")
+    assert uni["upstream"]["4062.T"] == "封装·Ibiden"
+    assert uni["upstream"]["AMKR"] == "封装·Amkor"
+    assert uni["upstream"]["flat_direct"] == "直接标签"  # 新旧格式可混用
+    assert uni["midstream"]["MSFT"] == "Azure"

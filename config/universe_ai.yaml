@@ -84,9 +84,9 @@ upstream:
     VICR: Vicor(电源模块)
     MPWR: MPS(VRM/格局变动中)
     IFX.DE: 英飞凌(Blackwell VRM主供)
-    ON: onsemi(功率)
+    "ON": onsemi(功率)  # 必须加引号：裸 ON 会被 YAML 1.1 解析成布尔 True
     3017.TW: AVC奇鋐(冷板)
-    3324.TW: Auras双鸿(冷板manifold)
+    3324.TWO: Auras双鸿(冷板manifold)  # 柜买中心上市，后缀 .TWO（.TW 会 404）
     NVT: nVent(液冷配电)
     MOD: Modine(散热)
     PH: Parker(UQD快接头)

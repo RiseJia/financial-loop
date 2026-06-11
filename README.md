@@ -49,8 +49,17 @@ finloop backtest SPY --strategy all
 # 信号事件研究：验证拐点/动量信号是否真的携带信息
 finloop eventstudy NVDA
 
-# 数据质量报告与双源对账
-finloop quality AAPL
+# 数据质量：真实检查 / 离线故障注入演示
+finloop quality NVDA
+finloop quality --demo
+
+# AI 产业链筛选：需求 vs 估值横截面打分（universe 见 config/universe_ai.yaml）
+finloop screen --tier upstream
+finloop screen --tier all
+
+# 研究级批量回测：横截面（多标的）/ 情景压力测试（离线）
+finloop research --tier upstream --period 5y
+finloop research --synthetic
 
 # 查看自选股列表
 finloop watchlist
@@ -79,6 +88,8 @@ tests/             # 指标与信号的单元测试（离线合成数据）
 - [docs/long_term.md](docs/long_term.md) — 长线投资决策框架
 - [docs/intraday.md](docs/intraday.md) — 日内交易决策框架
 - [docs/backtesting.md](docs/backtesting.md) — 回测原理：策略的抽象、引擎会计、四大陷阱、事件研究
+- [docs/data_quality.md](docs/data_quality.md) — 数据质量解决方案：校验管线、降级、双源对账、诚实边界
+- [docs/ai_supply_chain.md](docs/ai_supply_chain.md) — AI 产业链方法论：上游「需求 >> 估值」的三层证据与风险排查
 
 ## 每日自动报告
 

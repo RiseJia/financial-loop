@@ -1,0 +1,64 @@
+# AI 产业链 universe（美股可交易标的）
+# 结构：tier -> {ticker: 标签}
+# 上游 = 算力供给侧（芯片/设备/EDA/网络/电力/数据中心物理层）
+# 中游 = 算力运营与平台（云/超算租赁）
+# 下游 = 应用与变现
+#
+# 注意：列表本身就带选择偏差（都是已被市场识别的名字）。
+# 真正的「需求远大于估值」候选往往在边缘：二线设备、电力设备、
+# 散热、电源管理——筛选器的价值是用同一把尺子横向比较它们。
+
+upstream:
+  # --- 算力芯片与存储 ---
+  NVDA: GPU/加速计算
+  AMD: GPU/CPU 二供
+  AVGO: 定制ASIC/网络芯片
+  MRVL: 定制ASIC/光电互联
+  MU: HBM/存储
+  ARM: IP授权
+  QCOM: 端侧AI芯片
+  # --- 制造与设备 ---
+  TSM: 先进制程代工
+  ASML: 光刻机垄断
+  AMAT: 沉积/刻蚀设备
+  LRCX: 刻蚀设备
+  KLAC: 检测量测
+  TER: 测试设备
+  # --- EDA ---
+  SNPS: EDA/IP
+  CDNS: EDA
+  # --- 网络与光互联 ---
+  ANET: 数据中心交换机
+  COHR: 光模块/光器件
+  LITE: 光模块
+  CRDO: 高速互联
+  # --- 服务器与电力/散热基础设施 ---
+  SMCI: AI服务器
+  DELL: AI服务器
+  VRT: 电源/散热
+  ETN: 电力设备
+  PWR: 电网工程
+  # --- 电力供给 ---
+  VST: 电力(独立发电)
+  CEG: 电力(核电)
+  NRG: 电力
+  # --- 数据中心物理层 ---
+  DLR: 数据中心REIT
+  EQIX: 数据中心REIT
+
+midstream:
+  MSFT: Azure/OpenAI
+  GOOGL: GCP/Gemini/TPU
+  AMZN: AWS/Trainium
+  META: 自用算力/Llama
+  ORCL: OCI算力租赁
+  CRWV: GPU云(CoreWeave)
+
+downstream:
+  PLTR: 企业AI平台
+  NOW: 工作流+AI
+  CRM: 企业软件+AI
+  ADBE: 创意软件+AI
+  DDOG: 可观测性
+  SNOW: 数据平台
+  APP: 广告引擎AI

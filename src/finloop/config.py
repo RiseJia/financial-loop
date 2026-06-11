@@ -37,6 +37,18 @@ def load_watchlist(path: str | Path | None = None) -> dict:
     return merged
 
 
+def load_universe(name: str = "ai") -> dict[str, dict[str, str]]:
+    """加载产业链 universe（config/universe_<name>.yaml）。
+
+    返回 {tier: {ticker: label}}；文件缺失返回空 dict。
+    """
+    path = repo_root() / "config" / f"universe_{name}.yaml"
+    if not path.exists():
+        return {}
+    with open(path, encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
+
 def reports_dir() -> Path:
     d = repo_root() / "reports"
     d.mkdir(exist_ok=True)

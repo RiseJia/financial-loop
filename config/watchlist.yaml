@@ -2,14 +2,18 @@
 # tickers: 个股自选列表，daily report 与 batch 分析都会用到
 # benchmarks/sectors/macro: 日报中的市场概览部分
 
+# 主线：AI 上下游产业（完整 universe 见 universe_ai.yaml，此处为日报扫描的核心关注）
 tickers:
-  - AAPL
-  - MSFT
-  - NVDA
-  - GOOGL
-  - AMZN
-  - TSLA
-  - META
+  - NVDA   # 上游：GPU
+  - AVGO   # 上游：定制ASIC/网络
+  - TSM    # 上游：代工
+  - ASML   # 上游：光刻
+  - MU     # 上游：HBM
+  - VRT    # 上游：电源散热
+  - ANET   # 上游：交换机
+  - CEG    # 上游：电力
+  - MSFT   # 中游：云（上游需求的总闸门之一）
+  - META   # 中游：自用算力
 
 benchmarks:
   SPY: 标普500

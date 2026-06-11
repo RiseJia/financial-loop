@@ -35,7 +35,9 @@ def compute_metrics(returns: pd.Series, positions: pd.Series | None = None) -> d
     years = n / TRADING_DAYS
     cagr = float(equity.iloc[-1] ** (1 / years) - 1) if years > 0 and equity.iloc[-1] > 0 else 0.0
     vol = float(returns.std() * np.sqrt(TRADING_DAYS))
-    sharpe = float(cagr / vol) if vol > 1e-12 else 0.0
+    # 标准定义：年化算术均值收益 / 年化波动（rf=0），而非 CAGR/vol
+    ann_mean = float(returns.mean() * TRADING_DAYS)
+    sharpe = float(ann_mean / vol) if vol > 1e-12 else 0.0
 
     peak = equity.cummax()
     drawdown = equity / peak - 1

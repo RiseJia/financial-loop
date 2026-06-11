@@ -125,6 +125,12 @@ def cmd_eventstudy(args):
 def cmd_quality(args):
     from .data.service import default_service
 
+    if args.demo:
+        from .data.demo import run_demo
+        print(run_demo())
+        return
+    if not args.ticker:
+        sys.exit("用法：finloop quality TICKER 或 finloop quality --demo")
     ticker = args.ticker.upper()
     df = default_service.get_daily(ticker, period="6mo")
     print(f"\n数据源：{default_service.last_source}")
@@ -144,6 +150,42 @@ def cmd_quality(args):
         if chk["n_breaches"]:
             print(f"  超容差日期（前5）：{', '.join(chk['breach_dates'])}")
             print("  注意：两源复权口径不同（yfinance 全调整 vs stooq 仅拆股），分红区间会有系统性偏差。")
+
+
+def cmd_screen(args):
+    from .screener import format_screen, run_screen
+
+    scored = run_screen(universe=args.universe, tier=args.tier)
+    if scored.empty:
+        sys.exit("无数据（检查网络或 universe 配置）")
+    print(format_screen(scored, args.tier))
+    print(f"\n{DISCLAIMER}")
+
+
+def cmd_research(args):
+    from .backtest.batch import (run_real_matrix, run_scenario_matrix,
+                                 write_real_report, write_scenario_report)
+
+    if args.synthetic:
+        print(f"运行情景压力测试：{args.paths} 条路径/情景 …")
+        matrix = run_scenario_matrix(n_paths=args.paths, cost_bps=args.cost)
+        path = write_scenario_report(matrix, cost_bps=args.cost)
+        print(f"研究报告已生成：{path}")
+        return
+
+    from .config import load_universe, load_watchlist
+    if args.tier:
+        uni = load_universe("ai")
+        tickers = (list(uni.get(args.tier, {})) if args.tier != "all"
+                   else [t for tier in uni.values() for t in tier])
+    else:
+        tickers = load_watchlist()["tickers"]
+    print(f"运行横截面回测：{len(tickers)} 只标的 × 全部策略（{args.period}）…")
+    matrix, yearly = run_real_matrix(tickers, period=args.period, cost_bps=args.cost)
+    if matrix.empty:
+        sys.exit("无可用数据（检查网络）")
+    path = write_real_report(matrix, yearly, period=args.period, cost_bps=args.cost)
+    print(f"研究报告已生成：{path}")
 
 
 def cmd_watchlist(args):
@@ -202,8 +244,26 @@ def main(argv: list[str] | None = None):
     p.set_defaults(func=cmd_eventstudy)
 
     p = sub.add_parser("quality", help="数据质量报告与双源对账")
-    p.add_argument("ticker")
+    p.add_argument("ticker", nargs="?", default=None)
+    p.add_argument("--demo", action="store_true",
+                   help="离线演示：故障注入→校验判定→降级行为")
     p.set_defaults(func=cmd_quality)
+
+    p = sub.add_parser("screen", help="产业链筛选：需求 vs 估值横截面打分")
+    p.add_argument("--universe", default="ai", help="universe 名（默认 ai）")
+    p.add_argument("--tier", default="upstream",
+                   help="upstream/midstream/downstream/all（默认 upstream）")
+    p.set_defaults(func=cmd_screen)
+
+    p = sub.add_parser("research", help="批量回测研究报告（横截面/情景压力测试）")
+    p.add_argument("--synthetic", action="store_true",
+                   help="情景压力测试模式（离线，合成多状态行情）")
+    p.add_argument("--tier", default=None,
+                   help="真实模式：用 AI universe 的某个 tier 替代自选股")
+    p.add_argument("--period", default="5y")
+    p.add_argument("--cost", type=float, default=10.0)
+    p.add_argument("--paths", type=int, default=5, help="情景模式：每情景路径数")
+    p.set_defaults(func=cmd_research)
 
     p = sub.add_parser("explain", help="指标教学详解")
     p.add_argument("indicator")

@@ -66,6 +66,9 @@ def score_universe(fundamentals: dict[str, dict]) -> pd.DataFrame:
     for field, _, _ in ALL_FIELDS:
         if field not in raw.columns:
             raw[field] = np.nan
+    # 负 PE/PEG = 亏损公司，不是「便宜」——置 NaN 落到中性，而非被 z-score 当成最低估值
+    for field, _, _ in VALUATION_FIELDS:
+        raw[field] = raw[field].where(raw[field] > 0)
 
     demand = sum(_zscore(raw[f]) for f, _, _ in DEMAND_FIELDS)
     valuation = sum(_zscore(raw[f]) for f, _, _ in VALUATION_FIELDS)

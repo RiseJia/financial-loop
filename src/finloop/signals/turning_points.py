@@ -26,15 +26,24 @@ def _cross_down(a: pd.Series, b) -> pd.Series:
     return (a < b) & (a.shift() >= (b.shift() if isinstance(b, pd.Series) else b))
 
 
-def detect_turning_points(df: pd.DataFrame, lookback: int = 30) -> list[dict]:
-    """扫描最近 lookback 根 K 线内的拐点事件，按时间排序返回。"""
+def detect_turning_points(df: pd.DataFrame, lookback: int = 30,
+                          cap: int | None = 10) -> list[dict]:
+    """扫描最近 lookback 根 K 线内的拐点事件，按时间排序返回。
+
+    cap：每类信号最多返回最近 cap 次（报告场景防噪声）。
+    统计用途（事件研究）必须传 cap=None 取全样本——
+    截断成「最近 N 次」会引入近因偏差（审计 M1）。
+    """
     events: list[dict] = []
     n = len(df)
     if n < 60:
         return events
 
     def add(mask: pd.Series, type_: str, direction: str, strength: int, desc: str):
-        for ts in df.index[mask.fillna(False)][-10:]:
+        hits = df.index[mask.fillna(False)]
+        if cap is not None:
+            hits = hits[-cap:]
+        for ts in hits:
             if (n - df.index.get_loc(ts)) <= lookback:
                 events.append({
                     "date": ts.date().isoformat() if hasattr(ts, "date") else str(ts),

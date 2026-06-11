@@ -38,9 +38,10 @@ class DataService:
         if self.use_cache:
             cached = cache.load(ticker, "1d", period)
             if cached is not None:
-                self.last_source = "cache"
-                self.last_report = validate_ohlcv(cached, ticker)
-                return cached
+                report = validate_ohlcv(cached, ticker)
+                if report.ok:  # 缓存同样过质量门：被篡改/损坏的缓存视为未命中
+                    self.last_source, self.last_report = "cache", report
+                    return cached
 
         for provider in (self.primary, self.fallback):
             try:
@@ -67,8 +68,10 @@ class DataService:
         if self.use_cache:
             cached = cache.load(ticker, interval, period)
             if cached is not None:
-                self.last_source = "cache"
-                return cached
+                report = validate_ohlcv(cached, ticker, daily=False)
+                if report.ok:
+                    self.last_source, self.last_report = "cache", report
+                    return cached
         try:
             df = self.primary.fetch_intraday(ticker, interval, period)
         except Exception as exc:

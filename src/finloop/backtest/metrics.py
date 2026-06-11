@@ -39,7 +39,8 @@ def compute_metrics(returns: pd.Series, positions: pd.Series | None = None) -> d
     ann_mean = float(returns.mean() * TRADING_DAYS)
     sharpe = float(ann_mean / vol) if vol > 1e-12 else 0.0
 
-    peak = equity.cummax()
+    # 峰值必须计入初始资本 1.0，否则首段亏损被低估（首日 -40% 会被报成回撤 0）
+    peak = equity.cummax().clip(lower=1.0)
     drawdown = equity / peak - 1
     max_dd = float(drawdown.min())
 

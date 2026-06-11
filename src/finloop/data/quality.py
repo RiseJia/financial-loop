@@ -62,8 +62,16 @@ def validate_ohlcv(df: pd.DataFrame, ticker: str = "?", daily: bool = True) -> Q
     if not df.index.is_monotonic_increasing:
         rep.errors.append("时间戳乱序")
 
+    # 注意 NaN 与任何比较都为 False，必须显式检查（审计 M2：曾对 NaN close 失明）
+    if df["close"].isna().any():
+        rep.errors.append(f"收盘价缺失 NaN {int(df['close'].isna().sum())} 处")
     if (df["close"] <= 0).any():
         rep.errors.append(f"非正收盘价 {int((df['close'] <= 0).sum())} 处")
+    if (df["volume"] < 0).any():
+        rep.errors.append(f"负成交量 {int((df['volume'] < 0).sum())} 处")
+    neg_ohl = (df[["open", "high", "low"]] <= 0).any(axis=1)
+    if neg_ohl.any():
+        rep.errors.append(f"非正 open/high/low {int(neg_ohl.sum())} 处")
 
     bad_ohlc = (
         (df["high"] < df[["open", "close"]].max(axis=1) - 1e-9)
@@ -78,9 +86,11 @@ def validate_ohlcv(df: pd.DataFrame, ticker: str = "?", daily: bool = True) -> Q
 
     # --- 统计检查（warning）---
     rets = df["close"].pct_change()
-    # 用前一日为止的波动率做阈值（shift），否则跳变会抬高自己的阈值而逃过检测
+    # 用前一日为止的波动率做阈值（shift），否则跳变会抬高自己的阈值而逃过检测；
+    # 暖机期波动率为 NaN 时退化用 12% 绝对阈值（审计 m6：曾对前 ~11 根失效）
     vol = rets.rolling(20, min_periods=10).std().shift(1)
-    jumps = (rets.abs() > (8 * vol).clip(lower=0.12)).fillna(False)
+    threshold = (8 * vol).clip(lower=0.12).fillna(0.12)
+    jumps = (rets.abs() > threshold).fillna(False)
     if jumps.any():
         dates = [d.date().isoformat() for d in df.index[jumps][:3]]
         rep.warnings.append(

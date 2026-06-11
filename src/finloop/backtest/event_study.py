@@ -38,8 +38,9 @@ def event_study(df: pd.DataFrame, horizons: tuple[int, ...] = HORIZONS) -> dict:
     返回 {signal_type: {direction, n, horizons: {N: {...统计量}}}}，
     以及 '_baseline'：无条件前向收益基线。
     """
-    # 全历史扫描（lookback 取数据长度）
-    events = detect_turning_points(df, lookback=len(df)) + \
+    # 全历史扫描：lookback 取数据长度，cap=None 取每类信号的全部样本
+    # （默认 cap=10 是日报防噪声用的，统计上会造成近因偏差）
+    events = detect_turning_points(df, lookback=len(df), cap=None) + \
         detect_momentum_switches(df, lookback=len(df))
 
     close = df["close"]
@@ -78,7 +79,9 @@ def event_study(df: pd.DataFrame, horizons: tuple[int, ...] = HORIZONS) -> dict:
                 "excess": float(excess),
                 "t_stat": float(excess / se) if se and se > 1e-12 else float("nan"),
             }
-        out[sig_type] = entry
+        # 背离类信号日期记在序列末根，前向收益必为 NaN → horizons 为空，剔除
+        if entry["horizons"]:
+            out[sig_type] = entry
     return out
 
 
@@ -93,13 +96,19 @@ def format_event_study(result: dict, ticker: str = "") -> str:
         if sig_type == "_baseline":
             continue
         for h, s in entry["horizons"].items():
-            flag = "" if abs(s.get("t_stat") or 0) < 2 else " ✱"
+            t = s.get("t_stat")
+            # NaN（n=1 等）不渲染数值更不标显著（nan 的任何比较都为 False，曾被误标 ✱）
+            if t is None or not np.isfinite(t):
+                t_cell = "-"
+            else:
+                t_cell = f"{t:.1f}" + (" ✱" if abs(t) > 2 else "")
             lines.append(
                 f"| {sig_type} | {'🟢' if entry['direction']=='bullish' else '🔴'} "
                 f"| {s['n']} | {h}日 | {s['mean']:+.2%} | {s['baseline_mean']:+.2%} "
-                f"| {s['excess']:+.2%} | {s['hit_rate']:.0%} | "
-                f"{s['t_stat']:.1f}{flag} |"
+                f"| {s['excess']:+.2%} | {s['hit_rate']:.0%} | {t_cell} |"
             )
-    lines += ["", "✱ = |t|>2（约 95% 置信）。注意：单票样本少 + 多重假设检验，",
-              "孤立的显著不可信，跨多只票稳定显著的信号才值得相信。"]
+    lines += ["", "✱ = |t|>2（约 95% 置信）。三个必须记住的折扣因子：",
+              "1. 单票样本少 + 多重假设检验：孤立的显著不可信，跨多票稳定显著才算数；",
+              "2. 事件窗口重叠：相邻信号间隔常小于前向周期（20/60日），样本序列相关，t 值被系统性高估；",
+              "3. 信号扎堆出现在同一段行情时，n 次事件 ≈ 1 次独立观察。"]
     return "\n".join(lines)

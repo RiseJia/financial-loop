@@ -17,7 +17,9 @@ def rsi(close: pd.Series, window: int = 14) -> pd.Series:
     delta = close.diff()
     gain = delta.clip(lower=0).ewm(alpha=1 / window, adjust=False).mean()
     loss = (-delta.clip(upper=0)).ewm(alpha=1 / window, adjust=False).mean()
-    rs = gain / loss.replace(0, pd.NA)
+    # loss=0 且 gain>0 时 rs=inf → RSI=100（单边上涨的正确极值，曾被错置为中性 50）；
+    # gain=loss=0（横盘）→ 0/0=NaN → 50
+    rs = gain / loss
     out = 100 - 100 / (1 + rs)
     return out.fillna(50.0).astype(float)
 

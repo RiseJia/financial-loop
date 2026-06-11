@@ -18,7 +18,11 @@ import pandas as pd
 
 
 def momentum_score(df: pd.DataFrame) -> pd.Series:
-    """逐行计算 -4 ~ +4 的动量得分。"""
+    """逐行计算 -4 ~ +4 的动量得分；暖机期（分量无效）为 NaN。
+
+    NaN 与任何比较都为 False，若不屏蔽会被记成 -1 票，使每段历史
+    都从「空头阵营」起步，序列开头制造一次伪动量切换（审计 m4）。
+    """
     hist = df["macd_hist"]
     score = (
         hist.apply(lambda x: 1 if x > 0 else -1)
@@ -26,14 +30,16 @@ def momentum_score(df: pd.DataFrame) -> pd.Series:
         + df["roc20"].apply(lambda x: 1 if x > 0 else -1)
         + df["rsi14"].apply(lambda x: 1 if x > 50 else -1)
     )
-    return score
+    valid = hist.diff().notna() & df["roc20"].notna() & df["rsi14"].notna()
+    return score.where(valid)
 
 
 def momentum_state(df: pd.DataFrame) -> dict:
     """返回当前动量状态与各分量的明细。"""
     row = df.iloc[-1]
     hist, prev_hist = row["macd_hist"], df["macd_hist"].iloc[-2]
-    score = int(momentum_score(df).iloc[-1])
+    last_score = momentum_score(df).iloc[-1]
+    score = int(last_score) if pd.notna(last_score) else 0  # 暖机期按过渡区处理
 
     if score >= 2:
         state, label = "bull", "多头动量"

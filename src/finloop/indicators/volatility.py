@@ -15,7 +15,7 @@ def bollinger(close: pd.Series, window: int = 20, num_std: float = 2.0) -> pd.Da
     bb_width    带宽 = (上轨 - 下轨) / 中轨，极低带宽（挤压）往往孕育大行情
     """
     mid = close.rolling(window).mean()
-    std = close.rolling(window).std()
+    std = close.rolling(window).std(ddof=0)  # 总体标准差，与教科书/TA-Lib 口径一致
     upper = mid + num_std * std
     lower = mid - num_std * std
     return pd.DataFrame({

@@ -47,8 +47,13 @@ def intraday_view(df_5m: pd.DataFrame, ticker: str) -> dict:
         ),
     }
 
-    # --- 开盘区间（前 30 分钟 = 6 根 5m K）---
-    or_bars = today_df.iloc[:6]
+    # --- 开盘区间（美东 9:30-10:00 时间窗；时区信息缺失时退化为前 6 根）---
+    try:
+        or_bars = today_df.between_time("09:30", "09:59")
+    except TypeError:
+        or_bars = pd.DataFrame()
+    if or_bars.empty:
+        or_bars = today_df.iloc[:6]
     or_high, or_low = float(or_bars["high"].max()), float(or_bars["low"].min())
     if price > or_high:
         or_state = "已向上突破开盘区间——日内多头格局，区间上沿转为支撑"

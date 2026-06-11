@@ -10,7 +10,8 @@
 
 | 模块 | 功能 |
 |------|------|
-| `finloop.data` | 行情数据（日线/分钟线）、基本面快照、市场新闻抓取（基于 yfinance） |
+| `finloop.data` | 多源数据层：yfinance 主源 + stooq 备源降级、质量校验管道、parquet 本地缓存、双源对账 |
+| `finloop.backtest` | 回测引擎：策略抽象、向量化引擎（防前视+成本模型）、绩效指标、信号事件研究 |
 | `finloop.indicators` | 趋势 / 动量 / 波动率 / 量能四大类技术指标，纯 pandas 实现，无 TA-Lib 依赖 |
 | `finloop.indicators.explain` | 指标解释引擎：对每个指标的当前读数生成中文详细解读 |
 | `finloop.signals` | 拐点检测（金叉死叉、背离、布林挤压突破等）与动量切换（momentum switching）识别 |
@@ -41,6 +42,16 @@ finloop intraday TSLA
 finloop explain rsi
 finloop explain macd
 
+# 回测：策略 vs 买入持有（5年，含交易成本）
+finloop backtest AAPL --strategy sma200
+finloop backtest SPY --strategy all
+
+# 信号事件研究：验证拐点/动量信号是否真的携带信息
+finloop eventstudy NVDA
+
+# 数据质量报告与双源对账
+finloop quality AAPL
+
 # 查看自选股列表
 finloop watchlist
 ```
@@ -67,6 +78,7 @@ tests/             # 指标与信号的单元测试（离线合成数据）
 - [docs/turning_points.md](docs/turning_points.md) — 拐点与动量切换的识别逻辑
 - [docs/long_term.md](docs/long_term.md) — 长线投资决策框架
 - [docs/intraday.md](docs/intraday.md) — 日内交易决策框架
+- [docs/backtesting.md](docs/backtesting.md) — 回测原理：策略的抽象、引擎会计、四大陷阱、事件研究
 
 ## 每日自动报告
 

@@ -31,7 +31,9 @@ def stochastic(high: pd.Series, low: pd.Series, close: pd.Series,
     """
     lowest = low.rolling(k_window).min()
     highest = high.rolling(k_window).max()
-    k = 100 * (close - lowest) / (highest - lowest)
+    # 一字横盘时高低区间为 0，按中性 50 处理（避免除零）
+    span = (highest - lowest).where(lambda s: s > 0)
+    k = (100 * (close - lowest) / span).fillna(50.0)
     d = k.rolling(d_window).mean()
     return pd.DataFrame({"stoch_k": k, "stoch_d": d})
 

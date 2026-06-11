@@ -87,6 +87,65 @@ def cmd_explain(args):
     print(format_lesson(lesson))
 
 
+def cmd_backtest(args):
+    from .backtest import STRATEGIES, get_strategy, run_backtest
+    from .data import get_daily
+    from .indicators import enrich
+
+    ticker = args.ticker.upper()
+    df = enrich(get_daily(ticker, period=args.period))
+    if df.empty:
+        sys.exit(f"无法获取 {ticker} 的行情数据")
+    if args.strategy == "all":
+        names = [n for n in STRATEGIES if n != "buy_hold"]
+    else:
+        names = [args.strategy]
+    for name in names:
+        positions = get_strategy(name)(df)
+        result = run_backtest(df, positions, strategy_name=name,
+                              ticker=ticker, cost_bps=args.cost)
+        print("\n" + result.summary())
+    print(f"\n{DISCLAIMER}")
+    print("提醒：单票回测受幸存者偏差与过拟合影响，结论需多票+样本外验证，见 docs/backtesting.md")
+
+
+def cmd_eventstudy(args):
+    from .backtest import event_study
+    from .backtest.event_study import format_event_study
+    from .data import get_daily
+    from .indicators import enrich
+
+    ticker = args.ticker.upper()
+    df = enrich(get_daily(ticker, period=args.period))
+    if df.empty:
+        sys.exit(f"无法获取 {ticker} 的行情数据")
+    print(format_event_study(event_study(df), ticker))
+
+
+def cmd_quality(args):
+    from .data.service import default_service
+
+    ticker = args.ticker.upper()
+    df = default_service.get_daily(ticker, period="6mo")
+    print(f"\n数据源：{default_service.last_source}")
+    if default_service.last_report:
+        print(default_service.last_report.summary())
+    if df.empty:
+        sys.exit(1)
+    print("\n双源对账（yfinance vs stooq，最近6个月收盘价）：")
+    chk = default_service.cross_check(ticker)
+    if "error" in chk:
+        print(f"  对账失败：{chk['error']}")
+    elif chk.get("overlap_days", 0) == 0:
+        print("  无重叠数据（备源可能不支持该代码）")
+    else:
+        print(f"  重叠 {chk['overlap_days']} 天 | 平均偏差 {chk['mean_abs_dev']:.3%} "
+              f"| 最大偏差 {chk['max_abs_dev']:.3%} | 超容差(1%) {chk['n_breaches']} 天")
+        if chk["n_breaches"]:
+            print(f"  超容差日期（前5）：{', '.join(chk['breach_dates'])}")
+            print("  注意：两源复权口径不同（yfinance 全调整 vs stooq 仅拆股），分红区间会有系统性偏差。")
+
+
 def cmd_watchlist(args):
     from .config import load_watchlist
     from .data import get_last_quote
@@ -128,6 +187,23 @@ def main(argv: list[str] | None = None):
     p = sub.add_parser("intraday", help="日内视角分析（5分钟线）")
     p.add_argument("ticker")
     p.set_defaults(func=cmd_intraday)
+
+    p = sub.add_parser("backtest", help="策略回测")
+    p.add_argument("ticker")
+    p.add_argument("--strategy", default="all",
+                   help="策略名（buy_hold/sma200/macd/rsi_mr/momentum/all，默认all）")
+    p.add_argument("--period", default="5y", help="回测区间（默认5y）")
+    p.add_argument("--cost", type=float, default=10.0, help="单边成本bps（默认10）")
+    p.set_defaults(func=cmd_backtest)
+
+    p = sub.add_parser("eventstudy", help="信号事件研究：验证信号是否携带信息")
+    p.add_argument("ticker")
+    p.add_argument("--period", default="5y", help="研究区间（默认5y）")
+    p.set_defaults(func=cmd_eventstudy)
+
+    p = sub.add_parser("quality", help="数据质量报告与双源对账")
+    p.add_argument("ticker")
+    p.set_defaults(func=cmd_quality)
 
     p = sub.add_parser("explain", help="指标教学详解")
     p.add_argument("indicator")

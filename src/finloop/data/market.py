@@ -1,51 +1,26 @@
-"""行情数据层：统一封装 yfinance。
+"""行情数据入口（薄委托层，向后兼容）。
 
-所有函数返回标准化的 OHLCV DataFrame，列名固定为：
-open / high / low / close / volume，索引为 DatetimeIndex。
-上层（指标、信号、策略）只依赖这个契约，更换数据源时只需改这一层。
+实际工作由 service.DataService 完成：缓存 → 主源(yfinance) → 备源(stooq)
+→ 质量校验。上层（指标/信号/策略/报告）只依赖这里的三个函数，
+契约不变：标准 OHLCV（open/high/low/close/volume，DatetimeIndex）。
 """
 
 from __future__ import annotations
 
 import pandas as pd
-import yfinance as yf
 
-STANDARD_COLS = ["open", "high", "low", "close", "volume"]
-
-
-def _normalize(df: pd.DataFrame) -> pd.DataFrame:
-    """把 yfinance 返回的 DataFrame 规整为标准 OHLCV。"""
-    if df is None or df.empty:
-        return pd.DataFrame(columns=STANDARD_COLS)
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns = df.columns.get_level_values(0)
-    df = df.rename(columns=str.lower)
-    df = df[[c for c in STANDARD_COLS if c in df.columns]]
-    df = df.dropna(subset=["close"])
-    df.index = pd.to_datetime(df.index)
-    return df
+from .providers.base import STANDARD_COLS  # noqa: F401  保持旧导入路径可用
+from .service import default_service
 
 
 def get_daily(ticker: str, period: str = "2y") -> pd.DataFrame:
-    """日线数据。period 如 '6mo'、'2y'、'max'。获取失败返回空 DataFrame。"""
-    try:
-        df = yf.Ticker(ticker).history(period=period, interval="1d", auto_adjust=True)
-    except Exception:
-        return pd.DataFrame(columns=STANDARD_COLS)
-    return _normalize(df)
+    """日线数据。period 如 '6mo'、'2y'、'max'。失败返回空 DataFrame。"""
+    return default_service.get_daily(ticker, period)
 
 
 def get_intraday(ticker: str, interval: str = "5m", period: str = "5d") -> pd.DataFrame:
-    """分钟线数据。获取失败返回空 DataFrame。
-
-    雅虎限制：interval='1m' 仅最近 7 天；'5m'/'15m' 最近 60 天。
-    返回带时区（美东交易时段）的 OHLCV。
-    """
-    try:
-        df = yf.Ticker(ticker).history(period=period, interval=interval, auto_adjust=True)
-    except Exception:
-        return pd.DataFrame(columns=STANDARD_COLS)
-    return _normalize(df)
+    """分钟线数据（仅主源支持）。雅虎限制：1m 最近 7 天、5m 最近 60 天。"""
+    return default_service.get_intraday(ticker, interval, period)
 
 
 def get_last_quote(ticker: str) -> dict:

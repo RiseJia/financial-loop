@@ -7,10 +7,14 @@ def make_ohlcv(closes: np.ndarray, start="2023-01-02") -> pd.DataFrame:
     """从收盘价序列构造合成 OHLCV（交易日索引）。"""
     idx = pd.bdate_range(start, periods=len(closes))
     close = pd.Series(closes, index=idx, dtype=float)
+    open_ = close.shift(1).fillna(close.iloc[0])
+    # high/low 必须包住 open 与 close，保证 OHLC 自洽（与真实数据约束一致）
+    body_hi = pd.concat([open_, close], axis=1).max(axis=1)
+    body_lo = pd.concat([open_, close], axis=1).min(axis=1)
     return pd.DataFrame({
-        "open": close.shift(1).fillna(close.iloc[0]),
-        "high": close * 1.01,
-        "low": close * 0.99,
+        "open": open_,
+        "high": body_hi * 1.005,
+        "low": body_lo * 0.995,
         "close": close,
         "volume": np.full(len(closes), 1_000_000.0),
     })

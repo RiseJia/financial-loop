@@ -1,0 +1,39 @@
+# 自选股配置
+# tickers: 个股自选列表，daily report 与 batch 分析都会用到
+# benchmarks/sectors/macro: 日报中的市场概览部分
+
+tickers:
+  - AAPL
+  - MSFT
+  - NVDA
+  - GOOGL
+  - AMZN
+  - TSLA
+  - META
+
+benchmarks:
+  SPY: 标普500
+  QQQ: 纳斯达克100
+  DIA: 道琼斯
+  IWM: 罗素2000
+
+sectors:
+  XLK: 科技
+  XLF: 金融
+  XLE: 能源
+  XLV: 医疗
+  XLI: 工业
+  XLY: 可选消费
+  XLP: 必需消费
+  XLU: 公用事业
+  XLRE: 房地产
+  XLB: 原材料
+  XLC: 通信服务
+
+macro:
+  ^VIX: 恐慌指数 VIX
+  ^TNX: 美债10年期收益率
+  DX-Y.NYB: 美元指数 DXY
+  GC=F: 黄金期货
+  CL=F: 原油期货 WTI
+  BTC-USD: 比特币

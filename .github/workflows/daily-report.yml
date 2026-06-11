@@ -1,0 +1,43 @@
+# 每个交易日美东收盘后自动生成市场日报并提交到 reports/
+# 21:30 UTC ≈ 美东 16:30（夏令时）/ 17:30（冬令时收盘后一小时）
+# 如不需要自动日报，删除本文件即可。
+
+name: Daily Market Report
+
+on:
+  schedule:
+    - cron: "30 21 * * 1-5" # 周一至周五
+  workflow_dispatch: {} # 支持手动触发
+
+permissions:
+  contents: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install
+        run: |
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Generate report
+        run: finloop report
+
+      - name: Commit report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add reports/
+          if git diff --cached --quiet; then
+            echo "No report changes to commit."
+          else
+            git commit -m "report: $(date -u +%F) 每日市场报告"
+            git push
+          fi

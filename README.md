@@ -83,6 +83,9 @@ tests/             # 指标与信号的单元测试（离线合成数据）
 
 ## 方法论文档
 
+**AI 产业链体系化教程**（推荐从这里开始）：[docs/chain/](docs/chain/README.md) —
+8 篇从算力芯片层到周期框架的系统教学，每层讲透"为什么存在、谁说了算、钱怎么赚、周期怎么转"。
+
 - [docs/indicators.md](docs/indicators.md) — 每个指标的原理、公式、参数、解读方式与常见误区
 - [docs/turning_points.md](docs/turning_points.md) — 拐点与动量切换的识别逻辑
 - [docs/long_term.md](docs/long_term.md) — 长线投资决策框架

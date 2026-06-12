@@ -126,10 +126,13 @@ class DataService:
             s = self.fallback.fetch_daily(ticker, period)
         except Exception as exc:
             out["error"] = f"备源失败: {exc}"
-            return out
+            s = None
+        # 路由名在发请求前就已写入，失败路径也要带上——排错需要知道死的是哪个子源
         route = getattr(self.fallback, "last_route", None)
         if route:
             out["secondary"] = f"{self.fallback.name}:{route}"
+        if s is None:
+            return out
         out["primary_quality"] = validate_ohlcv(p, ticker)
         out["secondary_quality"] = validate_ohlcv(s, ticker)
         out.update(reconcile(p, s, tolerance=tolerance))

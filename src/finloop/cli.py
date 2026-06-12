@@ -138,8 +138,8 @@ def cmd_quality(args):
         print(default_service.last_report.summary())
     if df.empty:
         sys.exit(1)
-    print("\n双源对账（yfinance vs stooq，最近6个月收盘价）：")
     chk = default_service.cross_check(ticker)
+    print(f"\n双源对账（{chk['primary']} vs {chk['secondary']}，最近6个月收盘价）：")
     if "error" in chk:
         print(f"  对账失败：{chk['error']}")
     elif chk.get("overlap_days", 0) == 0:
@@ -149,7 +149,8 @@ def cmd_quality(args):
               f"| 最大偏差 {chk['max_abs_dev']:.3%} | 超容差(1%) {chk['n_breaches']} 天")
         if chk["n_breaches"]:
             print(f"  超容差日期（前5）：{', '.join(chk['breach_dates'])}")
-            print("  注意：两源复权口径不同（yfinance 全调整 vs stooq 仅拆股），分红区间会有系统性偏差。")
+            print("  注意：两源复权口径可能不同（台湾官方未复权、Naver 分红存疑，"
+                  "见 docs/data_quality.md），除权除息区间会有系统性偏差。")
 
 
 def cmd_screen(args):

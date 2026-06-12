@@ -56,6 +56,12 @@ def validate_ohlcv(df: pd.DataFrame, ticker: str = "?", daily: bool = True) -> Q
     if missing:
         rep.errors.append(f"缺少列：{missing}")
         return rep
+    # 重复列名是结构性错误（如 provider 改名后原始列与复权列并存，
+    # df["close"] 会取出两列，下游所有标量判断全部失效）——拒绝而不是崩溃
+    dup_cols = df.columns[df.columns.duplicated()].unique().tolist()
+    if dup_cols:
+        rep.errors.append(f"重复列名：{dup_cols}")
+        return rep
 
     if df.index.duplicated().any():
         rep.errors.append(f"时间戳重复 {int(df.index.duplicated().sum())} 处")

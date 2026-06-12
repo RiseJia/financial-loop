@@ -39,6 +39,18 @@ def test_validate_duplicate_timestamps(trending_up):
     assert not rep.ok and any("重复" in e for e in rep.errors)
 
 
+def test_validate_duplicate_columns_rejected(trending_up):
+    """重复列名按结构性错误拒绝，不允许崩溃。
+
+    真实事故（2026-06 Tiingo 实网验收）：响应里原始列与 adj* 列并存，
+    provider rename 后出现两个 close 列，df["close"] 取出 DataFrame，
+    后续所有标量判断抛 ValueError——质量门自己先崩了。
+    """
+    df = pd.concat([trending_up, trending_up[["close"]]], axis=1)
+    rep = validate_ohlcv(df, "DUPCOL")
+    assert not rep.ok and any("重复列名" in e for e in rep.errors)
+
+
 def test_validate_extreme_jump_warns(trending_up):
     df = trending_up.copy()
     df.iloc[100, df.columns.get_loc("close")] *= 3  # 单日 +200%

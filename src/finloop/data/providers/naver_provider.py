@@ -11,8 +11,12 @@
   - 响应是 Python 风格的列表文本（单引号），需做容错解析；
   - 仅日线。
 
-⚠️ 本 provider 编写时所在环境的网络白名单不含 api.finance.naver.com，
-未经过实网验证——首次启用时先跑 `finloop quality 000660.KS` 确认。
+⚠️ 仍未经实网验证（2026-06-12 第二次尝试失败）：执行环境的 egress 代理
+对 api.finance.naver.com 有域名白名单之外的整域拦截（任意路径/方法均
+返回代理 403 "Blocked by egress policy"），解析逻辑仍只过了离线单测。
+降级管线对该故障的行为已实测：`finloop quality 000660.KS` 显式报
+"备源失败 403"并标明路由，不静默。在不经此代理的环境首次启用时，
+先跑 `finloop quality 000660.KS` 确认解析正确。
 """
 
 from __future__ import annotations

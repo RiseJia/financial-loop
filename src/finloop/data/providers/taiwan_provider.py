@@ -13,9 +13,10 @@
   - 日期为民国纪年（如 115/06/01 = 2026-06-01），数值含千分位逗号，
     缺值用 "--"；解析失败的行跳过并计数，不让单行坏数据毁掉整月。
 
-⚠️ 本 provider 编写时所在环境的网络白名单不含 twse.com.tw/tpex.org.tw，
-未经过实网验证——首次启用时先跑 `finloop quality 2330.TW` 确认连通与
-解析正确，再投入正式使用。
+实网验证（2026-06-12）：TWSE（2330.TW）与 TPEx（3081.TWO）均验收通过，
+真实响应与解析假设一致；与 yfinance 的对账偏差呈"除息阶跃"形态——
+最近一次除息后两源逐日一致，更早区间为常数级系统偏差（复权口径差异，
+预期内），实测数字见 docs/data_quality.md。
 """
 
 from __future__ import annotations
@@ -104,13 +105,13 @@ class TaiwanProvider:
         tables = payload.get("tables") or []
         data = tables[0].get("data", []) if tables else payload.get("aaData", [])
         rows = []
-        # fields: 日期 成交仟股 成交仟元 開盤 最高 最低 收盤 漲跌 筆數
+        # fields(实测): 日 期 成交張數 成交仟元 開盤 最高 最低 收盤 漲跌 筆數
         for r in data:
             if len(r) < 7:
                 continue
             date = _roc_to_date(r[0])
             o, h, lo, c = _num(r[3]), _num(r[4]), _num(r[5]), _num(r[6])
-            vol = _num(r[1])  # 成交仟股：千股 → 股
+            vol = _num(r[1])  # 成交張數：1 張 = 1000 股
             if date is None or c is None:
                 continue
             rows.append({"date": date, "open": o, "high": h, "low": lo,

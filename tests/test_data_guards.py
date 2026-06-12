@@ -223,11 +223,21 @@ def test_taiwan_parsers():
 
 
 def test_taiwan_month_parsing(monkeypatch):
-    """TWSE 月度 JSON（民国纪年+千分位）→ 标准 OHLCV。"""
-    payload = {"stat": "OK", "data": [
-        ["115/06/01", "33,743,629", "x", "960.00", "970.00", "955.00", "965.00", "+5", "n"],
-        ["115/06/02", "30,000,000", "x", "966.00", "980.00", "--", "975.00", "+10", "n"],
-        ["garbage-date", "1", "x", "1", "1", "1", "1", "1", "n"],  # 坏行跳过
+    """TWSE 月度 JSON → 标准 OHLCV。
+
+    样本取自 2026-06-12 实网验收抓到的真实响应（2330）：10 字段含「註記」，
+    漲跌價差可为 " 0.00"/"X0.00"（X=不比价）——解析只取前 7 列，不受影响。
+    """
+    payload = {"stat": "OK", "fields": [
+        "日期", "成交股數", "成交金額", "開盤價", "最高價", "最低價",
+        "收盤價", "漲跌價差", "成交筆數", "註記"], "data": [
+        ["115/06/01", "60,942,792", "144,105,259,583", "2,355.00", "2,415.00",
+         "2,350.00", "2,355.00", " 0.00", "136,367", ""],
+        ["115/06/11", "46,417,523", "104,091,484,739", "2,240.00", "2,260.00",
+         "2,210.00", "2,250.00", "X0.00", "320,151", ""],
+        ["115/06/02", "30,000,000", "x", "966.00", "980.00", "--", "975.00",
+         "+10", "n", ""],  # 缺值 "--" → None
+        ["garbage-date", "1", "x", "1", "1", "1", "1", "1", "n", ""],  # 坏行跳过
     ]}
 
     class FakeResp:
@@ -237,9 +247,76 @@ def test_taiwan_month_parsing(monkeypatch):
     monkeypatch.setattr("finloop.data.providers.taiwan_provider.requests.get",
                         lambda *a, **kw: FakeResp())
     rows = TaiwanProvider()._fetch_month_twse("2330", pd.Timestamp(2026, 6, 1))
+    assert len(rows) == 3
+    assert rows[0]["close"] == 2355.0 and rows[0]["volume"] == 60942792.0
+    assert rows[1]["date"] == pd.Timestamp(2026, 6, 11)
+    assert rows[2]["low"] is None  # "--" → None，由 normalize/质量门处置
+
+
+def test_tpex_month_parsing(monkeypatch):
+    """TPEx 月度 JSON（tables[0].data）→ 标准 OHLCV。
+
+    样本取自 2026-06-12 实网验收抓到的真实响应（3081）。
+    注意成交量字段实为「成交張數」（1 張 = 1000 股），×1000 换算为股。
+    """
+    payload = {"tables": [{
+        "title": "個股日成交資訊", "subtitle": "3081 聯亞 115年06月",
+        "date": "20260601",
+        "data": [
+            ["115/06/01", "1,639", "4,385,576", "2,620.00", "2,740.00",
+             "2,585.00", "2,685.00", "70.00", "8,408"],
+            ["115/06/02", "2,674", "7,145,124", "2,795.00", "2,865.00",
+             "2,525.00", "2,575.00", "-110.00", "15,239"],
+        ],
+        "fields": ["日 期", "成交張數", "成交仟元", "開盤", "最高", "最低",
+                   "收盤", "漲跌", "筆數"],
+        "totalCount": 2, "summary": []}],
+        "date": "20260601", "code": "3081", "name": "聯亞", "stat": "ok"}
+
+    class FakeResp:
+        def raise_for_status(self): ...
+        def json(self): return payload
+
+    monkeypatch.setattr("finloop.data.providers.taiwan_provider.requests.get",
+                        lambda *a, **kw: FakeResp())
+    rows = TaiwanProvider()._fetch_month_tpex("3081", pd.Timestamp(2026, 6, 1))
     assert len(rows) == 2
-    assert rows[0]["close"] == 965.0 and rows[0]["volume"] == 33743629.0
-    assert rows[1]["low"] is None  # "--" → None，由 normalize/质量门处置
+    assert rows[0]["close"] == 2685.0
+    assert rows[0]["volume"] == 1639 * 1000  # 張 → 股
+    assert rows[1]["date"] == pd.Timestamp(2026, 6, 2)
+
+
+def test_tiingo_real_response_parsing(monkeypatch):
+    """Tiingo 真实响应里原始列与 adj* 列并存——rename 前必须只挑 adj*。
+
+    回归（2026-06-12 实网验收抓到）：直接 rename 会产生重复的
+    open/close/… 列名，df["close"] 取出两列，质量门崩溃。
+    样本取自真实响应（MU），字段一行未删。
+    """
+    payload = [
+        {"date": "2026-06-01T00:00:00.000Z", "close": 1035.5, "high": 1046.97,
+         "low": 1009.5, "open": 1009.72, "volume": 46552116,
+         "adjClose": 1035.5, "adjHigh": 1046.97, "adjLow": 1009.5,
+         "adjOpen": 1009.72, "adjVolume": 46552116,
+         "divCash": 0.0, "splitFactor": 1.0},
+        {"date": "2026-06-02T00:00:00.000Z", "close": 1064.1, "high": 1076.56,
+         "low": 1017.201, "open": 1050.0, "volume": 47555370,
+         "adjClose": 1064.1, "adjHigh": 1076.56, "adjLow": 1017.201,
+         "adjOpen": 1050.0, "adjVolume": 47555370,
+         "divCash": 0.0, "splitFactor": 1.0},
+    ]
+
+    class FakeResp:
+        def raise_for_status(self): ...
+        def json(self): return payload
+
+    monkeypatch.setattr("finloop.data.providers.tiingo_provider.requests.get",
+                        lambda *a, **kw: FakeResp())
+    df = TiingoProvider(api_key="test").fetch_daily("MU", "1mo")
+    assert not df.columns.duplicated().any()
+    assert list(df.index) == [pd.Timestamp(2026, 6, 1), pd.Timestamp(2026, 6, 2)]
+    assert df.iloc[0]["close"] == 1035.5
+    assert validate_ohlcv(df, "MU").ok
 
 
 def test_naver_parse_and_fetch(monkeypatch):

@@ -52,10 +52,18 @@ def get_fundamentals(ticker: str) -> dict:
 #   ① forward PE 与 trailing PE 偏离过大 → 预期口径过时/远期/将崩，先核验；
 #   ② 市值÷forwardPE 倒推的隐含净利 对照 营收 TTM → 隐含净利率荒谬即必有一错。
 # 校验只产生警告（研究纪律是"先核验再采信"），不修改、不丢弃数据。
+#
+# 规则③（2026-06 第三轮调研立项）：盈利与营收增速强背离 → 疑似一次性损益。
+# 实锤双镜像案例：Nittobo 净利+190% vs 营收+10%（卖楼收益→假便宜）；
+# KYEC 盈利-47% vs 营收+39%（基期卖厂收益→假恶化，剔除后实为+85%）。
+# 阈值校准：异号且差距>30pp，或同号差距>150pp——放过正常经营杠杆
+# （盈利+85% vs 营收+39% 不触发），抓住一次性污染与周期极端外推。
 
 PE_RATIO_BAND = (1 / 3, 3.0)     # fPE/tPE 容忍区间
 IMPLIED_MARGIN_SOFT = 0.60       # 隐含净利率 > 60% 提示核验
 IMPLIED_MARGIN_HARD = 1.00       # > 100%（净利超营收）必有一错
+GROWTH_DIVERGENCE_OPPOSITE = 0.30  # 异号背离阈值（30pp）
+GROWTH_DIVERGENCE_SAME = 1.50      # 同号背离阈值（150pp）
 
 
 def validate_fundamentals(vals: dict) -> list[str]:
@@ -79,6 +87,15 @@ def validate_fundamentals(vals: dict) -> list[str]:
             warns.append(f"隐含净利率 {implied_margin:.0%}＞100%：fPE 与市值/营收必有一错")
         elif implied_margin > IMPLIED_MARGIN_SOFT:
             warns.append(f"隐含净利率 {implied_margin:.0%}：超 60%，先核验 fPE 口径")
+    rev_g, earn_g = vals.get("revenueGrowth"), vals.get("earningsGrowth")
+    if rev_g is not None and earn_g is not None:
+        diff = abs(earn_g - rev_g)
+        opposite = (earn_g > 0) != (rev_g > 0)
+        if (opposite and diff > GROWTH_DIVERGENCE_OPPOSITE) or diff > GROWTH_DIVERGENCE_SAME:
+            warns.append(
+                f"盈利({earn_g:+.0%})与营收({rev_g:+.0%})增速强背离："
+                "疑似一次性损益污染或周期极端，先核 special items"
+            )
     return warns
 
 

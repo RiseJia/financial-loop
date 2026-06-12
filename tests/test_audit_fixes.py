@@ -156,3 +156,26 @@ def test_m8_negative_pe_not_ranked_cheapest():
     scored = score_universe(fundamentals)
     assert scored.index[0] == "FAIR"          # 真低估值第一
     assert scored.loc["LOSS_MAKER", "gap"] <= scored.loc["FAIR", "gap"]
+
+
+# ---------------------------------------------------------------- 规则③：增速强背离
+
+def test_growth_divergence_nittobo_pattern():
+    """同号但差距>150pp（卖楼收益假便宜）→ 触发。"""
+    from finloop.data.fundamentals import validate_fundamentals
+    warns = validate_fundamentals({"revenueGrowth": 0.10, "earningsGrowth": 1.90})
+    assert any("强背离" in w for w in warns)
+
+
+def test_growth_divergence_kyec_pattern():
+    """异号且差距>30pp（基期卖厂收益假恶化）→ 触发。"""
+    from finloop.data.fundamentals import validate_fundamentals
+    warns = validate_fundamentals({"revenueGrowth": 0.39, "earningsGrowth": -0.47})
+    assert any("强背离" in w for w in warns)
+
+
+def test_growth_divergence_operating_leverage_passes():
+    """正常经营杠杆（同号、差距46pp）→ 不触发。"""
+    from finloop.data.fundamentals import validate_fundamentals
+    warns = validate_fundamentals({"revenueGrowth": 0.39, "earningsGrowth": 0.85})
+    assert not any("强背离" in w for w in warns)

@@ -114,6 +114,55 @@ def validate_ohlcv(df: pd.DataFrame, ticker: str = "?", daily: bool = True) -> Q
     return rep
 
 
+# 坏行修复上限：超过 max(5 行, 0.5%) 视为大面积污染，不修——掩盖比拒绝更危险
+REPAIR_MAX_ROWS = 5
+REPAIR_MAX_FRACTION = 0.005
+
+
+def repair_ohlcv(df: pd.DataFrame, ticker: str = "?") -> tuple[pd.DataFrame, list[str]]:
+    """剔除孤立坏行，返回 (清理后的 df, 修复说明列表)。
+
+    背景：2026-06 实测中 000660.KS（SK海力士）的 yfinance 日线有 3 处
+    OHLC 自洽性破坏，整票被质量门拒收且备源不可用——1219 行数据因 3 行
+    报废。本函数允许在坏行**极少**时剔行放行，而不是整票拒绝。
+
+    纪律：
+      - 只处理结构性坏行：时间戳重复（保留首条）、close 缺失/非正、
+        负成交量、非正 open/high/low、OHLC 自洽性破坏；
+      - 坏行数 > max(REPAIR_MAX_ROWS, 0.5%) 时拒绝修复（返回原 df 与空说明），
+        让 validate_ohlcv 正常拒绝——大面积污染说明数据源本身不可信；
+      - 修复行为必须显形：调用方应把说明并入 QualityReport.warnings。
+    无需修复或不可修复时返回 (原 df, [])。
+    """
+    if df is None or df.empty:
+        return df, []
+    if any(c not in df.columns for c in ("open", "high", "low", "close", "volume")):
+        return df, []
+
+    dup = df.index.duplicated(keep="first")
+    bad = (
+        df["close"].isna()
+        | (df["close"] <= 0)
+        | (df["volume"] < 0)
+        | (df[["open", "high", "low"]] <= 0).any(axis=1)
+        | (df["high"] < df[["open", "close"]].max(axis=1) - 1e-9)
+        | (df["low"] > df[["open", "close"]].min(axis=1) + 1e-9)
+        | (df["high"] < df["low"])
+    ).to_numpy() | dup
+    n_bad = int(bad.sum())
+    if n_bad == 0:
+        return df, []
+    cap = max(REPAIR_MAX_ROWS, int(len(df) * REPAIR_MAX_FRACTION))
+    if n_bad > cap:
+        return df, []
+
+    dates = [d.date().isoformat() if hasattr(d, "date") else str(d)
+             for d in df.index[bad][:3]]
+    note = (f"已剔除 {n_bad}/{len(df)} 处坏行（重复时间戳/OHLC矛盾/非正值；"
+            f"如 {', '.join(dates)}）——修复后数据，使用时知情")
+    return df[~bad], [note]
+
+
 def reconcile(primary: pd.DataFrame, secondary: pd.DataFrame,
               tolerance: float = 0.01) -> dict:
     """双源对账：比较两个来源在重叠日期上的收盘价。

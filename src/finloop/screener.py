@@ -85,9 +85,15 @@ def score_universe(fundamentals: dict[str, dict]) -> pd.DataFrame:
     return out.sort_values("gap", ascending=False)
 
 
-def run_screen(universe: str = "ai", tier: str = "upstream") -> pd.DataFrame:
-    """联网模式：抓取 universe 基本面并打分。tier='all' 时全产业链一起比。"""
-    from .data.fundamentals import get_fundamentals
+def run_screen(universe: str = "ai", tier: str = "upstream",
+               archive: bool = True) -> pd.DataFrame:
+    """联网模式：抓取 universe 基本面并打分。tier='all' 时全产业链一起比。
+
+    archive=True 时把本次抓到的原始基本面快照存档到
+    reports/research/data/（带抓取时间戳）——估值结论的半衰期以季度计，
+    没有快照就无法回答"当时看到的是什么数据"。
+    """
+    from .data.fundamentals import get_fundamentals, validate_fundamentals
 
     cfg = load_universe(universe)
     if not cfg:
@@ -104,9 +110,45 @@ def run_screen(universe: str = "ai", tier: str = "upstream") -> pd.DataFrame:
     if not fundamentals:
         return pd.DataFrame()
 
+    warnings = {t: validate_fundamentals(vals) for t, vals in fundamentals.items()}
     scored = score_universe(fundamentals)
     scored.insert(0, "标签", [labels.get(t, "") for t in scored.index])
+    scored.insert(1, "数据预警", ["；".join(warnings[t]) for t in scored.index])
+    if archive:
+        scored.attrs["snapshot_path"] = str(
+            archive_snapshot(fundamentals, labels, warnings, universe, tier))
     return scored
+
+
+def archive_snapshot(fundamentals: dict, labels: dict, warnings: dict,
+                     universe: str, tier: str, out_dir=None):
+    """把原始基本面快照写成带时间戳的 JSON，返回路径。
+
+    目的：可回溯性。排名表是加工品，快照才是证据——人工核验、事后复盘、
+    跨期对比（"上季度市场给它的 fPE 是多少"）都需要原始值。
+    """
+    import datetime as dt
+    import json
+
+    from .config import reports_dir
+
+    if out_dir is None:
+        out_dir = reports_dir() / "research" / "data"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    now = dt.datetime.now(dt.timezone.utc)
+    payload = {
+        "fetched_at": now.strftime("%Y-%m-%d %H:%M:%S UTC"),
+        "universe": universe,
+        "tier": tier,
+        "source": "yfinance（预期类字段有静默错误前科，采信前过数据预警+人工核验）",
+        "labels": labels,
+        "warnings": {t: w for t, w in warnings.items() if w},
+        "fundamentals": fundamentals,
+    }
+    path = out_dir / f"{now.date().isoformat()}_screen_{universe}_{tier}.json"
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=1, default=str),
+                    encoding="utf-8")
+    return path
 
 
 def format_screen(scored: pd.DataFrame, tier: str) -> str:
@@ -117,13 +159,13 @@ def format_screen(scored: pd.DataFrame, tier: str) -> str:
         "gap = 需求得分 − 估值得分（横截面 z-score）。**gap 高 ≠ 买入**，",
         "它生成的是人工深挖队列：去读财报确认 backlog/交期/下游 capex 指引。",
         "",
-        "| 代码 | 标签 | gap | 需求分 | 估值分 | 覆盖 | 营收增速 | 盈利增速 | 毛利率 | 前瞻PE | PEG |",
-        "|---|---|---|---|---|---|---|---|---|---|---|",
+        "| 代码 | 标签 | gap | 需求分 | 估值分 | 覆盖 | 数据预警 | 营收增速 | 盈利增速 | 毛利率 | 前瞻PE | PEG |",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for ticker, row in scored.iterrows():
         cells = [ticker, str(row.get("标签", "")), f"{row['gap']:+.2f}",
                  f"{row['demand_score']:+.2f}", f"{row['valuation_score']:+.2f}",
-                 row["coverage"]]
+                 row["coverage"], str(row.get("数据预警", "")) or "-"]
         for _, label, _ in ALL_FIELDS:
             v = row.get(label)
             if pd.isna(v):
@@ -137,9 +179,12 @@ def format_screen(scored: pd.DataFrame, tier: str) -> str:
         "",
         "解读纪律：",
         "1. 高 gap + 低覆盖率（缺数据）= 先补数据再下结论；",
-        "2. 毛利率扩张是上游供需紧张最硬的免费证据（涨价能力）；",
-        "3. 盈利增速远高于营收增速 = 经营杠杆释放期，常见于周期上行的设备/存储；",
-        "4. 下一步人工验证：超大规模云厂 capex 指引（MSFT/GOOGL/AMZN/META 财报）",
+        "2. **数据预警列非空的标的，先人工核验 forward 字段再采信**——",
+        "   缺数据显形于覆盖列，错数据显形于预警列（2026-06 实测：yfinance 对",
+        "   日台中小盘的预期字段有静默错误，核验 3 个错 2 个）；",
+        "3. 毛利率扩张是上游供需紧张最硬的免费证据（涨价能力）；",
+        "4. 盈利增速远高于营收增速 = 经营杠杆释放期，常见于周期上行的设备/存储；",
+        "5. 下一步人工验证：超大规模云厂 capex 指引（MSFT/GOOGL/AMZN/META 财报）",
         "   是全部上游需求的总闸门——上游的「需求」就是下游的「开支」。",
     ]
     return "\n".join(lines)

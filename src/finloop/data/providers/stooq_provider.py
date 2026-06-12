@@ -1,7 +1,12 @@
 """备用数据源：Stooq（https://stooq.com，免费 CSV 接口，无需 API key）。
 
-用途：
-  1. yfinance 失败时的日线降级源；
+⚠️ 状态（2026-06 实测）：stooq.com 已对数据中心 IP 部署 JS 工作量证明
+反爬验证，程序化访问拿到的是验证页而非 CSV——本 provider 在云端环境
+基本不可用，已从默认备源降级为美股的最后手段（见 regional.py 的路由链）。
+住宅网络/本地环境可能仍然可用，故保留。
+
+用途（可用时）：
+  1. yfinance 失败时的美股日线降级源；
   2. 双源对账（reconcile）的独立参照。
 限制：只有日线；只做拆股调整、不做分红调整（与 yfinance 的 auto_adjust
 全调整口径存在系统性小偏差，对账容差需考虑这一点）；美股代码需加 .us 后缀。
@@ -14,12 +19,7 @@ import io
 import pandas as pd
 import requests
 
-from .base import empty_ohlcv, normalize_ohlcv
-
-PERIOD_DAYS = {
-    "5d": 7, "10d": 14, "1mo": 31, "3mo": 92, "6mo": 183,
-    "1y": 366, "2y": 731, "5y": 1827, "max": 36500,
-}
+from .base import PERIOD_DAYS, empty_ohlcv, normalize_ohlcv
 
 
 def _stooq_symbol(ticker: str) -> str | None:

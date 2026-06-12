@@ -13,6 +13,16 @@ import pandas as pd
 
 STANDARD_COLS = ["open", "high", "low", "close", "volume"]
 
+# yfinance 风格 period 字符串 → 自然日数（各 provider 共用）
+PERIOD_DAYS = {
+    "5d": 7, "10d": 14, "1mo": 31, "3mo": 92, "6mo": 183,
+    "1y": 366, "2y": 731, "5y": 1827, "max": 36500,
+}
+
+
+def period_to_days(period: str, default: int = 731) -> int:
+    return PERIOD_DAYS.get(period, default)
+
 
 def normalize_ohlcv(df: pd.DataFrame) -> pd.DataFrame:
     """规整任意来源的 DataFrame 为标准 OHLCV。"""

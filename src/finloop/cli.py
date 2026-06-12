@@ -159,6 +159,8 @@ def cmd_screen(args):
     if scored.empty:
         sys.exit("无数据（检查网络或 universe 配置）")
     print(format_screen(scored, args.tier))
+    if scored.attrs.get("snapshot_path"):
+        print(f"\n原始基本面快照已存档：{scored.attrs['snapshot_path']}")
     print(f"\n{DISCLAIMER}")
 
 

@@ -104,7 +104,7 @@
 
 | 部件 | 命令 |
 |---|---|
-| 调研 | （agent 调研）+ `finloop report`（每日监控） |
+| 调研 | `finloop loop-status`（退出判定+任务清单，见 [research_loop.md](research_loop.md)）+ agent 调研 + `finloop report`（每日监控） |
 | 筛选 | `finloop screen --tier upstream` / `finloop analyze X` |
 | 策略 | `finloop signals X` / `finloop intraday X` |
 | 验证 | `finloop quality X` / `finloop backtest X` / `finloop eventstudy X` / `finloop research` |

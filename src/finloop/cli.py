@@ -1,11 +1,22 @@
 """finloop 命令行入口。
 
-  finloop report              生成今日市场日报（写入 reports/）
-  finloop analyze TICKER      个股完整分析报告
-  finloop signals TICKER      只看拐点与动量切换信号
-  finloop intraday TICKER     日内视角（5 分钟线）
-  finloop explain INDICATOR   指标教学详解（rsi/macd/bollinger/...）
-  finloop watchlist           查看自选股行情快照
+  数据与质量
+    finloop quality TICKER|--demo   数据质量报告/双源对账/故障注入演示
+  调研
+    finloop loop-status             调研循环退出判定与下一轮任务清单
+    finloop report                  每日市场日报（写入 reports/）
+  筛选与分析
+    finloop screen --tier X         产业链需求vs估值横截面打分
+    finloop analyze TICKER          个股完整分析报告
+    finloop watchlist               自选股行情快照
+  策略与信号
+    finloop signals TICKER          拐点与动量切换信号
+    finloop intraday TICKER         日内视角（5 分钟线）
+    finloop explain INDICATOR       指标教学详解（rsi/macd/...）
+  验证
+    finloop backtest TICKER         策略回测 vs 买入持有
+    finloop eventstudy TICKER       信号事件研究
+    finloop research [--synthetic]  批量回测研究报告（横截面/情景压测）
 """
 
 from __future__ import annotations

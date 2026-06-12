@@ -55,7 +55,7 @@ nodes:
     evidence:
       - claim: Google token 量 480T→3,200T/月（YoY 7x）；agentic 乘数 5-100x/任务且渗透刚起步
         asof: 2026-06-12
-      - claim: 订单簿硬可见度至 2027 末（NVDA $1T 订单 through 2027、Blackwell 售罄、Stargate 已落地 7GW）
+      - claim: 订单簿硬可见度——官方 $500B 至 2026 底（财报会确认）；媒体推算 $1T through 2027（单源）；Blackwell 售罄至 2027；Stargate 已落地 7GW
         asof: 2026-06-12
       - claim: 效率反作用力 ~3x/年（Blackwell 10x/MW、Rubin 宣称再 10x/瓦打折）；30-50% 的 2026 产能滑期到 2028（对上游=需求展期）
         asof: 2026-06-12

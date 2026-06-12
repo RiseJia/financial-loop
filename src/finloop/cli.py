@@ -190,6 +190,14 @@ def cmd_research(args):
     print(f"研究报告已生成：{path}")
 
 
+def cmd_loop_status(args):
+    from .research_loop import evaluate, format_status, load_state
+
+    st = evaluate(load_state())
+    print(format_status(st))
+    sys.exit(0 if st.can_exit else 1)  # 退出码可用于自动化（CI/cron 判定）
+
+
 def cmd_watchlist(args):
     from .config import load_watchlist
     from .data import get_last_quote
@@ -266,6 +274,9 @@ def main(argv: list[str] | None = None):
     p.add_argument("--cost", type=float, default=10.0)
     p.add_argument("--paths", type=int, default=5, help="情景模式：每情景路径数")
     p.set_defaults(func=cmd_research)
+
+    p = sub.add_parser("loop-status", help="调研循环状态：退出判定与下一轮任务清单")
+    p.set_defaults(func=cmd_loop_status)
 
     p = sub.add_parser("explain", help="指标教学详解")
     p.add_argument("indicator")

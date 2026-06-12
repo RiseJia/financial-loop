@@ -1,0 +1,184 @@
+# 调研状态机：把调研从"文档"变成"可检查的状态"
+#
+# 每个节点四件套：evidence（带时间戳的证据）、triggers（证伪触发器+状态）、
+# open_questions（未决问题）、last_verified。
+# `finloop loop-status` 据此自动判定：哪些过期、哪些待核、本轮是否可退出。
+#
+# trigger.status: ok（论点健康）| warning（黄色信号）| fired（已证伪，重审）
+# question.status: open（阻塞退出）| deferred（显式搁置，不阻塞，需注明理由）
+
+meta:
+  cadence_days: 90 # 证据保鲜期 = 一个财报季
+  rounds:
+    - date: 2026-06-11
+      scope: AI上游全链首轮（深度调研+估值验证）
+      new_nodes: 13
+      new_tickers: 102
+      notes: 基线轮。发现 ZACROS/Arisawa/LandMark 等隐藏环节；估值侧验证完成。
+
+global_triggers:
+  - condition: 四大云厂 capex 指引环比走平或下修（总闸门）
+    status: ok
+    last_checked: 2026-06-11
+    note: 2026 指引 $660-725B（+77%），仍在上修
+  - condition: DRAM 合约价环比转负（挤出效应红利结束）
+    status: ok
+    last_checked: 2026-06-11
+    note: 2026Q1 +90% vs Q4'25
+  - condition: 终端 AI 收入对 capex 覆盖度持续恶化
+    status: warning
+    last_checked: 2026-06-11
+    note: 缺口大，靠预期支撑——结构性黄灯，长期监控
+  - condition: 周期面板 ≥3 信号同时转向（docs/chain/08）
+    status: ok
+    last_checked: 2026-06-11
+    note: 当前 1 黄（SK砍单传闻）+ 1 结构黄（覆盖度）
+
+nodes:
+  cowos_packaging:
+    label: CoWoS/先进封装
+    last_verified: 2026-06-11
+    evidence:
+      - claim: TSMC 产能 35k(24末)→75-80k(25末)→127-130k wpm(26末)，预订深度18个月，NVDA锁60%+
+        asof: 2026-06-11
+      - claim: TSMC 外包 24-27万片/年给 Amkor/SPIL；ASE 后段提价 5-20%
+        asof: 2026-06-11
+    triggers:
+      - condition: CoWoS 预订深度缩短至 <12 个月
+        status: ok
+        last_checked: 2026-06-11
+      - condition: 2027 新产能落地后出现砍单
+        status: ok
+        last_checked: 2026-06-11
+    open_questions: []
+
+  abf_substrate:
+    label: ABF载板与材料链
+    last_verified: 2026-06-11
+    evidence:
+      - claim: Ajinomoto 2026Q3 提价30%；2028 缺口预估42%；玻璃基板=hybrid架构利好而非威胁
+        asof: 2026-06-11
+      - claim: Nittobo T-glass 2026-04 再提价20-30%，缺口10-20%至2027，产能三倍化26末投产
+        asof: 2026-06-11
+      - claim: Ibiden ¥5000亿capex(26-28)；Unimicron NVDA载板35%/ASIC 50%+
+        asof: 2026-06-11
+    triggers:
+      - condition: Nittobo 4月提价未落地 / Ajinomoto 提价遭抵制（定价权证伪）
+        status: ok
+        last_checked: 2026-06-11
+      - condition: 台厂载板月营收增速连续2月转负
+        status: ok
+        last_checked: 2026-06-11
+    open_questions:
+      - q: Nittobo 共识EPS ¥1,007 中一次性收益占比？回调30%归因（杀估值还是基本面）？
+        status: open
+      - q: ZACROS/Arisawa 财务数据可得性与流动性（零覆盖环节尽调）
+        status: deferred
+        reason: 先完成 Tier 1 核验，下轮处理
+
+  hbm_memory:
+    label: HBM与存储
+    last_verified: 2026-06-11
+    evidence:
+      - claim: 三强全部通过 NVDA HBM4 认证；SK 拿 Rubin 配额 60-70%
+        asof: 2026-06-11
+      - claim: 挤出效应：服务器DRAM Q4'25 +43-48%，2026Q1 整体 +90%；capex 转制程升级供给受限
+        asof: 2026-06-11
+    triggers:
+      - condition: SK 砍 2026 HBM4 出货 20-30%（Rubin 延迟）传闻坐实
+        status: warning
+        last_checked: 2026-06-11
+        note: 黄色信号已亮，待 SK 季报确认
+      - condition: 三强任一在财报中放弃供给纪律措辞
+        status: ok
+        last_checked: 2026-06-11
+    open_questions:
+      - q: MU 正常化盈利测算（跨周期平均利润率口径）——现价隐含的是哪个剧本？
+        status: open
+
+  silicon_wafer:
+    label: 硅片与晶圆材料
+    last_verified: 2026-06-11
+    evidence:
+      - claim: 2026Q1 出货 +13.1% YoY（数季最强）；LTA 长协提价中；先进片紧成熟片松
+        asof: 2026-06-11
+    triggers:
+      - condition: SEMI 季度出货增速转负 / LTA 重签价格下行
+        status: ok
+        last_checked: 2026-06-11
+    open_questions:
+      - q: SUMCO 巨亏 ¥1175亿 的构成（减值 vs 经营）？盈利拐点的领先指标是什么？
+        status: open
+
+  optical_interconnect:
+    label: 光互联
+    last_verified: 2026-06-11
+    evidence:
+      - claim: NVDA $40亿入股 LITE/COHR 锁 EML；LITE 200G/lane 唯一量产(50-60%)；COHR InP 售罄至2027
+        asof: 2026-06-11
+      - claim: 1.6T 出货 2026 预测 5M~30M（口径分歧6倍，NVDA占6成需求）
+        asof: 2026-06-11
+      - claim: CPO 交换机 2026H1 上量；对模块厂威胁/对激光器中性/对FAU增量
+        asof: 2026-06-11
+    triggers:
+      - condition: 1.6T 实际出货落在预测区间下沿（≈5M）
+        status: ok
+        last_checked: 2026-06-11
+      - condition: EML/InP 交期显著缓解（COHR book-to-bill 跌回 1.x）
+        status: ok
+        last_checked: 2026-06-11
+    open_questions:
+      - q: LITE 50x 隐含的 1.6T 出货剧本是 20M 还是 30M？（反向预期测算）
+        status: open
+      - q: LandMark 3081.TWO 数据真伪核验 + 盈利+646%的构成
+        status: open
+
+  test_equipment:
+    label: 测试设备
+    last_verified: 2026-06-11
+    evidence:
+      - claim: Advantest 估值约为 TER 三倍（同环节裂口）；KYEC 拿 NVDA 终测 >90%
+        asof: 2026-06-11
+    triggers:
+      - condition: AI 芯片测试时长增长论点失效（测试强度/SLT 渗透回落）
+        status: ok
+        last_checked: 2026-06-11
+    open_questions:
+      - q: TER 折价之谜——错杀（业务结构掩盖AI敞口）还是定价正确（Advantest垄断AI测试）？
+        status: open
+      - q: KYEC 营收+39% 但盈利-47% 的原因？
+        status: open
+
+  power_cooling:
+    label: 电源与散热
+    last_verified: 2026-06-11
+    evidence:
+      - claim: VRT backlog $15B(+109%)；Rubin 冷却液流量×2 全无风扇；台达 AI 电源 >60%
+        asof: 2026-06-11
+      - claim: MPWR 在 Blackwell 世代份额传闻流向 Infineon(60-70%)/Renesas
+        asof: 2026-06-11
+    triggers:
+      - condition: Rubin 部件定点结果公布——现有份额假设重检
+        status: ok
+        last_checked: 2026-06-11
+    open_questions: []
+
+  datacenter_power:
+    label: 数据中心电力
+    last_verified: 2026-06-11
+    evidence:
+      - claim: 大型变压器交期 128 周、GSU 144 周；美国 2026 规划 DC 一半可能延迟
+        asof: 2026-06-11
+    triggers:
+      - condition: Wood Mackenzie 季调显示交期开始环比缩短（定价权见顶）
+        status: ok
+        last_checked: 2026-06-11
+    open_questions: []
+
+# 下轮探索边界（饱和度判断：上轮已挖角落不重复，资源投向这里）
+frontier:
+  - EUV 光刻胶链再往上（树脂单体/光酸发生剂供应商）
+  - HBM 底部填充/NCF 膜材料（Resonac/Namics 之下一层）
+  - 数据中心水处理与柴油备用链
+  - 日本 J-Quants 接入后的日股小盘材料商盘点
+  - 下游 token 用量数据源（API 平台口径）盘点

@@ -93,24 +93,23 @@ nodes:
 
   abf_substrate:
     label: ABF载板与材料链
-    last_verified: 2026-06-11
+    last_verified: 2026-06-12
     evidence:
       - claim: Ajinomoto 2026Q3 提价30%；2028 缺口预估42%；玻璃基板=hybrid架构利好而非威胁
         asof: 2026-06-11
-      - claim: Nittobo T-glass 2026-04 再提价20-30%，缺口10-20%至2027，产能三倍化26末投产
-        asof: 2026-06-11
+      - claim: Nittobo FY27/3 指引：营收+15.9%、营业利益+24.9%、净利-59.3%（FY26/3 含卖楼特别利益¥341亿）；管理层称"极端提价难"且"T-glass 短期无增产"；干净口径 forward PE≈39x
+        asof: 2026-06-12
       - claim: Ibiden ¥5000亿capex(26-28)；Unimicron NVDA载板35%/ASIC 50%+
         asof: 2026-06-11
     triggers:
-      - condition: Nittobo 4月提价未落地 / Ajinomoto 提价遭抵制（定价权证伪）
-        status: ok
-        last_checked: 2026-06-11
+      - condition: Nittobo 提价落地度（管理层已亲口降温"极端提价难"——观察实际成交价 vs 口径）
+        status: warning
+        last_checked: 2026-06-12
+        note: 调研假设的"4月再提20-30%"未获管理层背书，叙事降温但价格仍上行
       - condition: 台厂载板月营收增速连续2月转负
         status: ok
         last_checked: 2026-06-11
     open_questions:
-      - q: Nittobo 共识EPS ¥1,007 中一次性收益占比？回调30%归因（杀估值还是基本面）？
-        status: open
       - q: ZACROS/Arisawa 财务数据可得性与流动性（零覆盖环节尽调）
         status: deferred
         reason: 先完成 Tier 1 核验，下轮处理

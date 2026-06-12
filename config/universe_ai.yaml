@@ -90,6 +90,9 @@ upstream:
     NVT: nVent(液冷配电)
     MOD: Modine(散热)
     PH: Parker(UQD快接头)
+    AAON: AAON(DC精密空调backlog+160%)
+    ECL: Ecolab(CoolIT液冷+水处理)
+    THR: Thermon(液冷负载箱/调试)
   数据中心电力:
     GEV: GE Vernova(变压器+燃机)
     ETN: 伊顿(电气设备)
@@ -108,12 +111,17 @@ upstream:
     BWXT: BWXT(核部件)
     LEU: Centrus(HALEU浓缩独苗)
     CCJ: Cameco(铀)
+    WCC: WESCO(电气分销/DC占24%)
+    PSIX: PSI(备用发电发动机/潍柴控股)
+    BDC: Belden(布线机架/弱敞口)
   电气施工:
     FIX: Comfort Systems(机电施工)
     EME: EMCOR(电气施工)
     IESC: IES(电气施工)
     STRL: Sterling(场地工程)
     DY: Dycom(光纤施工)
+    AGX: Argan(DC配套燃气电厂EPC)
+    LMB: Limbach(小盘机电/DC订单27%)
   整机EMS:
     SMCI: 超微
     DELL: 戴尔

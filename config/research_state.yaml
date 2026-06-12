@@ -27,6 +27,13 @@ meta:
       new_tickers: 0
       notes: 9 个 open 全闭环，状态机首次可退出。深挖名单换血（SUMCO 新晋，
         MU/LITE/TER 移除）。流程教训沉淀：一次性损益规则③、前提核验纪律。
+    - date: 2026-06-12
+      scope: 第五轮——美股物理层新节点+对冲专题+定投研究（3组员）
+      new_nodes: 0
+      new_tickers: 8
+      notes: AAON/WCC/PSIX/THR/AGX/ECL/LMB/BDC 入库；对冲专题清偿（TLT+XLV，
+        XLU因AI叙事污染除名防御）；新建 universe_dca 定投池；KYEC 估值核验
+        （干净forward~31-35x，PEG~0.85，名单首位）。
 
 global_triggers:
   - condition: 四大云厂 capex 指引环比走平或下修（总闸门）
@@ -75,9 +82,9 @@ nodes:
         status: ok
         last_checked: 2026-06-12
     open_questions:
-      - q: 悲观情景（增速失速+供给海啸）下的受益/对冲资产研究
+      - q: OpenRouter 增速代理与 Google 锚的校正系数（首次年度回测在 2027 I/O 后）
         status: deferred
-        reason: 下一轮带组员专题
+        reason: 需要两个年度锚点才能回测
   cowos_packaging:
     label: CoWoS/先进封装
     last_verified: 2026-06-11
@@ -209,10 +216,14 @@ nodes:
 
   datacenter_power:
     label: 数据中心电力
-    last_verified: 2026-06-11
+    last_verified: 2026-06-12
     evidence:
       - claim: 大型变压器交期 128 周、GSU 144 周；美国 2026 规划 DC 一半可能延迟
         asof: 2026-06-11
+      - claim: ⚠️ 防御失效：电力IPP(CEG 26x/VST 18x)已被AI叙事定价=AI beta非防御（2001-02商电崩盘镜像）；'第二引擎韧性'只适用于设备商不适用于IPP
+        asof: 2026-06-12
+      - claim: 新节点入库：WCC(电气分销DC占24%)、PSIX(备用发电部件)、AGX(DC燃气EPC backlog $29亿)
+        asof: 2026-06-12
     triggers:
       - condition: Wood Mackenzie 季调显示交期开始环比缩短（定价权见顶）
         status: ok
@@ -223,6 +234,6 @@ nodes:
 frontier:
   - EUV 光刻胶链再往上（树脂单体/光酸发生剂供应商）
   - HBM 底部填充/NCF 膜材料（Resonac/Namics 之下一层）
-  - 数据中心水处理与柴油备用链
   - 日本 J-Quants 接入后的日股小盘材料商盘点
-  - 下游 token 用量数据源（API 平台口径）盘点
+  - DCA 池的估值分位监控自动化（CAPE/forward PE 季度刷新进日报）
+  - 机房消防与物理安全的纯标的再筛（APG 敞口量化待披露）

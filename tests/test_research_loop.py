@@ -78,9 +78,13 @@ def test_stale_trigger_check_blocks_exit():
 
 
 def test_repo_state_loads_and_evaluates():
-    """repo 自带的 research_state.yaml 必须可解析，且结构完备（无 incomplete）。"""
+    """repo 自带的 research_state.yaml 必须可解析且结构完备。
+
+    只断言结构（调研进度是会变的，不在测试里写死）：
+    可解析、节点数、无结构缺失、保鲜期内无过期。
+    """
     st = evaluate(load_state(), today=dt.date(2026, 6, 15))
     assert st.n_nodes >= 8
-    assert not st.incomplete          # 每个节点都有证据+触发器（test_equipment 除外则失败）
-    assert st.open_questions          # 当前确实有未决问题（估值验证遗留）
-    assert not st.can_exit            # 所以本轮还不能退出——符合实际
+    assert not st.incomplete       # 每个节点都有证据+触发器
+    assert not st.stale_nodes      # 刚更新过的状态不应有过期证据
+    assert not st.stale_triggers

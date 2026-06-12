@@ -21,6 +21,12 @@ meta:
       new_tickers: 0
       notes: 锚定节点建立。核心产出：需求vs效率赛跑框架 + 七信号面板 +
         三情景研判（报告 2026-06-12_token_to_datacenter.md）。
+    - date: 2026-06-12
+      scope: 第三、四轮——open 问题全清算（1组员轮 + 3组员轮）
+      new_nodes: 0
+      new_tickers: 0
+      notes: 9 个 open 全闭环，状态机首次可退出。深挖名单换血（SUMCO 新晋，
+        MU/LITE/TER 移除）。流程教训沉淀：一次性损益规则③、前提核验纪律。
 
 global_triggers:
   - condition: 四大云厂 capex 指引环比走平或下修（总闸门）
@@ -59,6 +65,8 @@ nodes:
         asof: 2026-06-12
       - claim: 效率反作用力 ~3x/年（Blackwell 10x/MW、Rubin 宣称再 10x/瓦打折）；30-50% 的 2026 产能滑期到 2028（对上游=需求展期）
         asof: 2026-06-12
+      - claim: 测量方案落地：token 三层合成（Google锚/OpenAI·MSFT校准/OpenRouter周度代理）；agentic 三复合指标——路由层 agent 流量占比已 ~70%（详见 round4 报告 A 节）
+        asof: 2026-06-12
     triggers:
       - condition: 七信号面板 ≥3 越线（报告第五章，与 docs/chain/08 联动）
         status: ok
@@ -67,10 +75,6 @@ nodes:
         status: ok
         last_checked: 2026-06-12
     open_questions:
-      - q: 全行业 token 总量的多源测量方法（当前仅 Google 单源代理）
-        status: open
-      - q: agentic 渗透率的独立度量（席位/收入代理的滞后修正）
-        status: open
       - q: 悲观情景（增速失速+供给海啸）下的受益/对冲资产研究
         status: deferred
         reason: 下一轮带组员专题
@@ -122,6 +126,8 @@ nodes:
         asof: 2026-06-11
       - claim: 挤出效应：服务器DRAM Q4'25 +43-48%，2026Q1 整体 +90%；capex 转制程升级供给受限
         asof: 2026-06-11
+      - claim: MU 正常化 EPS 中枢 $14-16 → 现价约 62x 正常化盈利、P/B ~14x（历史周期顶的 5 倍）；隐含剧本="峰值即新常态"——估值侧极端，移出深挖名单
+        asof: 2026-06-12
     triggers:
       - condition: SK 砍 2026 HBM4 出货 20-30%（Rubin 延迟）传闻坐实
         status: warning
@@ -130,9 +136,7 @@ nodes:
       - condition: 三强任一在财报中放弃供给纪律措辞
         status: ok
         last_checked: 2026-06-11
-    open_questions:
-      - q: MU 正常化盈利测算（跨周期平均利润率口径）——现价隐含的是哪个剧本？
-        status: open
+    open_questions: []
 
   silicon_wafer:
     label: 硅片与晶圆材料
@@ -140,13 +144,16 @@ nodes:
     evidence:
       - claim: 2026Q1 出货 +13.1% YoY（数季最强）；LTA 长协提价中；先进片紧成熟片松
         asof: 2026-06-11
+      - claim: 前提纠偏：SUMCO FY25 净亏 ¥117亿（非¥1175亿），营业利润仍为正；亏损=新厂折旧+200mm退出特损，营业转盈预期 2026H2——左侧拐点型，新晋深挖名单
+        asof: 2026-06-12
     triggers:
       - condition: SEMI 季度出货增速转负 / LTA 重签价格下行
         status: ok
         last_checked: 2026-06-11
-    open_questions:
-      - q: SUMCO 巨亏 ¥1175亿 的构成（减值 vs 经营）？盈利拐点的领先指标是什么？
-        status: open
+      - condition: SUMCO 拐点跟踪：LTA 重签提价幅度 / 先进片稼动率(90%→满载) / 成熟片库存月数拐头
+        status: ok
+        last_checked: 2026-06-12
+    open_questions: []
 
   optical_interconnect:
     label: 光互联
@@ -158,6 +165,8 @@ nodes:
         asof: 2026-06-11
       - claim: CPO 交换机 2026H1 上量；对模块厂威胁/对激光器中性/对FAU增量
         asof: 2026-06-11
+      - claim: LITE 52x = Nomura 20M 剧本已完全定价；约束=行业 EML 产能 20M颗/年 vs 20M模块需160M颗（需5倍扩产）。LandMark +648% 属实（低基期+真实放量），forward 110-135x 等回调
+        asof: 2026-06-12
     triggers:
       - condition: 1.6T 实际出货落在预测区间下沿（≈5M）
         status: ok
@@ -165,11 +174,10 @@ nodes:
       - condition: EML/InP 交期显著缓解（COHR book-to-bill 跌回 1.x）
         status: ok
         last_checked: 2026-06-11
-    open_questions:
-      - q: LITE 50x 隐含的 1.6T 出货剧本是 20M 还是 30M？（反向预期测算）
-        status: open
-      - q: LandMark 3081.TWO 数据真伪核验 + 盈利+646%的构成
-        status: open
+      - condition: EML 行业产能扩张进度（20M→160M 颗需求缺口的弥合速度）
+        status: ok
+        last_checked: 2026-06-12
+    open_questions: []
 
   test_equipment:
     label: 测试设备

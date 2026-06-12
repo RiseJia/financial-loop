@@ -15,12 +15,26 @@ meta:
       new_nodes: 13
       new_tickers: 102
       notes: 基线轮。发现 ZACROS/Arisawa/LandMark 等隐藏环节；估值侧验证完成。
+    - date: 2026-06-12
+      scope: Token→算力→数据中心需求传导链（单人轮）
+      new_nodes: 1
+      new_tickers: 0
+      notes: 锚定节点建立。核心产出：需求vs效率赛跑框架 + 七信号面板 +
+        三情景研判（报告 2026-06-12_token_to_datacenter.md）。
 
 global_triggers:
   - condition: 四大云厂 capex 指引环比走平或下修（总闸门）
     status: ok
     last_checked: 2026-06-11
     note: 2026 指引 $660-725B（+77%），仍在上修
+  - condition: Token 量增速跌破效率增速（~3x/年）——悲观情景启动线
+    status: ok
+    last_checked: 2026-06-12
+    note: Google 口径 7x YoY vs 效率 ~3x，缺口仍在扩大。年度刷新点 = Google I/O
+  - condition: GPU 租金指数转跌（算力供需反转最快信号）
+    status: ok
+    last_checked: 2026-06-12
+    note: B200 $4.08/hr，年内 +48%
   - condition: DRAM 合约价环比转负（挤出效应红利结束）
     status: ok
     last_checked: 2026-06-11
@@ -31,10 +45,35 @@ global_triggers:
     note: 缺口大，靠预期支撑——结构性黄灯，长期监控
   - condition: 周期面板 ≥3 信号同时转向（docs/chain/08）
     status: ok
-    last_checked: 2026-06-11
+    last_checked: 2026-06-12
     note: 当前 1 黄（SK砍单传闻）+ 1 结构黄（覆盖度）
 
 nodes:
+  token_datacenter_demand:
+    label: Token→数据中心需求锚（全链有效期）
+    last_verified: 2026-06-12
+    evidence:
+      - claim: Google token 量 480T→3,200T/月（YoY 7x）；agentic 乘数 5-100x/任务且渗透刚起步
+        asof: 2026-06-12
+      - claim: 订单簿硬可见度至 2027 末（NVDA $1T 订单 through 2027、Blackwell 售罄、Stargate 已落地 7GW）
+        asof: 2026-06-12
+      - claim: 效率反作用力 ~3x/年（Blackwell 10x/MW、Rubin 宣称再 10x/瓦打折）；30-50% 的 2026 产能滑期到 2028（对上游=需求展期）
+        asof: 2026-06-12
+    triggers:
+      - condition: 七信号面板 ≥3 越线（报告第五章，与 docs/chain/08 联动）
+        status: ok
+        last_checked: 2026-06-12
+      - condition: PJM 类电力政治风险升级为强制立法（接入冻结/强制自建）
+        status: ok
+        last_checked: 2026-06-12
+    open_questions:
+      - q: 全行业 token 总量的多源测量方法（当前仅 Google 单源代理）
+        status: open
+      - q: agentic 渗透率的独立度量（席位/收入代理的滞后修正）
+        status: open
+      - q: 悲观情景（增速失速+供给海啸）下的受益/对冲资产研究
+        status: deferred
+        reason: 下一轮带组员专题
   cowos_packaging:
     label: CoWoS/先进封装
     last_verified: 2026-06-11

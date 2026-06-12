@@ -173,19 +173,17 @@ nodes:
 
   test_equipment:
     label: 测试设备
-    last_verified: 2026-06-11
+    last_verified: 2026-06-12
     evidence:
-      - claim: Advantest 估值约为 TER 三倍（同环节裂口）；KYEC 拿 NVDA 终测 >90%
-        asof: 2026-06-11
+      - claim: TER/Advantest 折价裂口已被市场纠正（TER Q1'26 +87%、70%收入AI相关、Magnum EPIC 拿 HBM 堆叠测试>50%；fwd PE ~52.9x 与 Advantest 持平）——错位窗口关闭
+        asof: 2026-06-12
+      - claim: KYEC 2026Q1 剔除苏州处分基期后净利+85%、毛利率+6.25pp、capex 上修至 NT$500亿——AI 测试论点强确认，深挖优先级上调
+        asof: 2026-06-12
     triggers:
       - condition: AI 芯片测试时长增长论点失效（测试强度/SLT 渗透回落）
         status: ok
-        last_checked: 2026-06-11
-    open_questions:
-      - q: TER 折价之谜——错杀（业务结构掩盖AI敞口）还是定价正确（Advantest垄断AI测试）？
-        status: open
-      - q: KYEC 营收+39% 但盈利-47% 的原因？
-        status: open
+        last_checked: 2026-06-12
+    open_questions: []
 
   power_cooling:
     label: 电源与散热

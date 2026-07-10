@@ -13,7 +13,8 @@ from __future__ import annotations
 
 import pandas as pd
 
-from ..data.fundamentals import get_fundamentals, format_value
+from ..data.fundamentals import (get_fundamentals, format_value,
+                                 validate_fundamentals)
 
 
 def long_term_view(df: pd.DataFrame, ticker: str, with_fundamentals: bool = True) -> dict:
@@ -23,8 +24,11 @@ def long_term_view(df: pd.DataFrame, ticker: str, with_fundamentals: bool = True
     out: dict = {"ticker": ticker, "price": price}
 
     # --- 趋势状态 ---
-    hi52 = float(df["close"].iloc[-252:].max()) if len(df) >= 252 else float(df["close"].max())
-    lo52 = float(df["close"].iloc[-252:].min()) if len(df) >= 252 else float(df["close"].min())
+    # 52 周高/低点用日内 high/low（市场惯例，如 "52-week high"），而非收盘价——
+    # 收盘价口径会系统性低估真实高点/高估真实低点，使"距52周高点"偏乐观
+    win = df.iloc[-252:] if len(df) >= 252 else df
+    hi52 = float(win["high"].max()) if "high" in win else float(win["close"].max())
+    lo52 = float(win["low"].min()) if "low" in win else float(win["close"].min())
     out["trend"] = {
         "above_200d": bool(price > row["sma200"]) if pd.notna(row["sma200"]) else None,
         "sma200_slope_up": bool(row["sma200"] > df["sma200"].iloc[-21]) if pd.notna(row["sma200"]) and len(df) > 21 else None,
@@ -38,6 +42,10 @@ def long_term_view(df: pd.DataFrame, ticker: str, with_fundamentals: bool = True
     fund = get_fundamentals(ticker) if with_fundamentals else {}
     out["name"] = fund.pop("_name", ticker) if fund else ticker
     out["sector"] = fund.pop("_sector", "") if fund else ""
+    # 基本面一致性预警（一次性损益/口径错配等）——此前只在 screener 用，
+    # 单票 analyze 从不调用，导致 Nittobo/KYEC 那类污染数据在个股报告里裸奔
+    out["data_warnings"] = validate_fundamentals(
+        {k: v["value"] for k, v in fund.items()})
     out["fundamentals"] = {
         k: {**v, "formatted": format_value(k, v["value"])} for k, v in fund.items()
     }
@@ -70,8 +78,11 @@ def long_term_view(df: pd.DataFrame, ticker: str, with_fundamentals: bool = True
         check("净利率 > 10%", f["profitMargins"]["value"] > 0.10,
               f"当前净利率 {f['profitMargins']['formatted']}。")
     if "pegRatio" in f:
-        check("PEG < 2（估值与增长匹配度）", f["pegRatio"]["value"] < 2,
-              f"当前 PEG {f['pegRatio']['formatted']}；>2 说明估值大幅透支增长。")
+        peg = f["pegRatio"]["value"]
+        # PEG<2 只对"正 PEG"有意义；负 PEG（亏损或增长为负）不是"便宜"，不能判 ✅
+        check("PEG 在 (0, 2)（估值与增长匹配度）", 0 < peg < 2,
+              f"当前 PEG {f['pegRatio']['formatted']}；"
+              + ("负值=亏损或增长为负，PEG 失效。" if peg <= 0 else ">2 说明估值大幅透支增长。"))
     out["checklist"] = checks
 
     passed = sum(1 for c in checks if c["status"] == "✅")

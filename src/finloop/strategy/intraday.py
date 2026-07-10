@@ -47,11 +47,14 @@ def intraday_view(df_5m: pd.DataFrame, ticker: str) -> dict:
         ),
     }
 
-    # --- 开盘区间（美东 9:30-10:00 时间窗；时区信息缺失时退化为前 6 根）---
+    # --- 开盘区间（当日**首 30 分钟**）---
+    # 从数据本身的首根 K 线时间戳推断开盘时刻，而非硬编码美东 09:30——
+    # 该框架明确支持台/韩/日(09:00 开盘)等非美市场，硬编码会算错开盘区间。
+    session_open = today_df.index[0]
     try:
-        or_bars = today_df.between_time("09:30", "09:59")
+        or_bars = today_df[today_df.index < session_open + pd.Timedelta(minutes=30)]
     except TypeError:
-        or_bars = pd.DataFrame()
+        or_bars = today_df.iloc[:6]
     if or_bars.empty:
         or_bars = today_df.iloc[:6]
     or_high, or_low = float(or_bars["high"].max()), float(or_bars["low"].min())

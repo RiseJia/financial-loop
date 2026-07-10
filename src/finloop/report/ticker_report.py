@@ -76,6 +76,12 @@ def build_ticker_report(ticker: str, with_fundamentals: bool = True) -> str:
     ]
     for c in lt["checklist"]:
         lines.append(f"- {c['status']} {c['item']}\n  {c['note']}")
+    lines += ["", "  ⚠️ 检查清单阈值（ROE>15%/净利率>10%/PEG<2）是**行业无差别通用值**，"
+              "对分销/EMS/公用事业等结构性低利润率行业会系统性偏严——需结合"
+              f"行业（{lt.get('sector') or '未知'}）解读，勿机械按 ✅/❌ 计数。"]
+    if lt.get("data_warnings"):
+        lines += ["", "### ⚠️ 基本面数据预警（采信前先人工核验）", ""]
+        lines += [f"- {w}" for w in lt["data_warnings"]]
     if lt["fundamentals"]:
         lines += ["", "### 基本面快照", "", "| 指标 | 数值 | 说明 |", "|---|---|---|"]
         for v in lt["fundamentals"].values():

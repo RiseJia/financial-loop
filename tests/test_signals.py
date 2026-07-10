@@ -65,3 +65,39 @@ def test_lessons_complete():
     assert get_lesson("RSI")["name"].startswith("RSI")
     assert get_lesson("kd") is not None  # 别名
     assert "公式" in format_lesson(get_lesson("macd"))
+
+
+# ---------------------------------------------------------------- 对抗审计：信号/策略修复
+
+def test_regime_hysteresis_no_flipflop():
+    """单根异常状态不改变已确认 regime——消除逐日抖动。"""
+    from finloop.signals import classify_regime
+    df = enrich(trending_up_fixture())
+    base = classify_regime(df)["regime"]
+    # 篡改最后一根的 adx 到灰色地带（单根），不应立即翻转已确认状态
+    df2 = df.copy()
+    df2.iloc[-1, df2.columns.get_loc("adx")] = 10.0
+    flipped = classify_regime(df2)["regime"]
+    assert flipped == base   # 单根扰动被滞回吸收
+
+
+def trending_up_fixture():
+    import numpy as np
+    from tests.conftest import make_ohlcv
+    rng = np.random.default_rng(42)
+    return make_ohlcv(100 * np.cumprod(1 + 0.003 + rng.normal(0, 0.005, 300)))
+
+
+def test_long_term_peg_negative_not_pass():
+    """负 PEG 不应被判 ✅（PEG 对亏损/负增长失效）。"""
+    import pandas as pd, numpy as np
+    from unittest.mock import patch
+    from finloop.strategy.long_term import long_term_view
+    from tests.conftest import make_ohlcv
+    df = enrich(make_ohlcv(100 * 1.003 ** np.arange(300)))
+    fake = {"pegRatio": {"label": "PEG", "value": -1.5, "note": ""},
+            "_name": "X", "_sector": "Tech"}
+    with patch("finloop.strategy.long_term.get_fundamentals", return_value=fake):
+        v = long_term_view(df, "X")
+    peg_check = [c for c in v["checklist"] if "PEG" in c["item"]][0]
+    assert peg_check["status"] == "❌"   # 负 PEG 判不通过，不再误判 ✅

@@ -113,32 +113,39 @@ def detect_turning_points(df: pd.DataFrame, lookback: int = 30,
 
 
 def _detect_divergence(df: pd.DataFrame, lookback: int) -> list[dict]:
-    """简化背离检测：比较最近窗口与前一窗口的价格/指标极值。
+    """背离检测：在**价格摆动极值处**配对比较指标读数（而非各窗口的指标自身极值）。
 
-    顶背离：价格创出更高高点，而 RSI/OBV 的对应高点降低。
-    底背离：价格创出更低低点，而 RSI/OBV 的对应低点抬高。
+    正确定义（修复审计 divergence-method / obv-drift）：
+      顶背离 = 近端价格波峰 > 前端价格波峰，但**这两个价格波峰所在位置的**指标读数
+              近端 < 前端（指标未跟随价格创新高）。用「价格峰处的指标值」而非
+              「指标自身的窗口最大值」——后者会拿两窗口各自最强的一根比，与价格
+              峰无关，且对 OBV 这类累计漂移序列几乎恒不触发。
+      底背离 = 近端价格波谷 < 前端价格波谷，但两波谷处指标读数近端 > 前端。
+    信号日期锚定在**近端摆动极值那一根**（在序列内部，非末根）——使事件研究
+    能计算其前向收益（此前锚在末根 → 前向收益恒 NaN → 背离从不进入事件研究）。
     """
     out = []
-    if len(df) < 120:
-        return out
+    if lookback * 2 > len(df) or lookback < 3:
+        return out  # 需要两个不重叠窗口；event_study 的 lookback=len(df) 场景优雅跳过
     recent, prior = df.iloc[-lookback:], df.iloc[-lookback * 2:-lookback]
-    last_date = df.index[-1].date().isoformat()
 
     for col, label in (("rsi14", "RSI"), ("obv", "OBV")):
-        # 顶背离
-        if recent["close"].max() > prior["close"].max() and \
-           recent[col].max() < prior[col].max():
+        # 顶背离：价格峰处配对
+        r_hi, p_hi = recent["close"].idxmax(), prior["close"].idxmax()
+        if recent.loc[r_hi, "close"] > prior.loc[p_hi, "close"] and \
+           recent.loc[r_hi, col] < prior.loc[p_hi, col]:
             out.append({
-                "date": last_date, "type": f"{label}顶背离", "direction": "bearish",
-                "strength": 2,
-                "description": f"价格创出新高但 {label} 高点降低：上涨的内在动能/资金支持在减弱，趋势衰竭预警（背离不是反转的精确时点信号，而是减仓提示）。",
+                "date": r_hi.date().isoformat() if hasattr(r_hi, "date") else str(r_hi),
+                "type": f"{label}顶背离", "direction": "bearish", "strength": 2,
+                "description": f"价格创出更高的高点，但该高点处的 {label} 读数低于前一波峰：上涨的内在动能/资金支持在减弱，趋势衰竭预警（背离是减仓提示，非精确反转时点）。",
             })
-        # 底背离
-        if recent["close"].min() < prior["close"].min() and \
-           recent[col].min() > prior[col].min():
+        # 底背离：价格谷处配对
+        r_lo, p_lo = recent["close"].idxmin(), prior["close"].idxmin()
+        if recent.loc[r_lo, "close"] < prior.loc[p_lo, "close"] and \
+           recent.loc[r_lo, col] > prior.loc[p_lo, col]:
             out.append({
-                "date": last_date, "type": f"{label}底背离", "direction": "bullish",
-                "strength": 2,
-                "description": f"价格创出新低但 {label} 低点抬高：抛压在衰竭，下跌动能与价格走势背离，关注企稳反转的可能。",
+                "date": r_lo.date().isoformat() if hasattr(r_lo, "date") else str(r_lo),
+                "type": f"{label}底背离", "direction": "bullish", "strength": 2,
+                "description": f"价格创出更低的低点，但该低点处的 {label} 读数高于前一波谷：抛压在衰竭，下跌动能与价格背离，关注企稳反转的可能。",
             })
     return out

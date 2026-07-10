@@ -101,3 +101,26 @@ def test_long_term_peg_negative_not_pass():
         v = long_term_view(df, "X")
     peg_check = [c for c in v["checklist"] if "PEG" in c["item"]][0]
     assert peg_check["status"] == "❌"   # 负 PEG 判不通过，不再误判 ✅
+
+
+def test_divergence_paired_at_swing_and_dated_internally():
+    """背离在价格摆动极值处配对，且信号日期在序列内部（事件研究可用）。"""
+    import numpy as np
+    from finloop.signals.turning_points import _detect_divergence
+    from tests.conftest import make_ohlcv
+    p1 = np.concatenate([np.linspace(80, 100, 30), np.linspace(100, 90, 30)])
+    p2 = np.concatenate([np.linspace(90, 105, 40), np.linspace(105, 100, 20)])
+    df = enrich(make_ohlcv(np.concatenate([p1, p2])))
+    divs = _detect_divergence(df, lookback=60)
+    assert any(d["type"] == "RSI顶背离" for d in divs)     # 价格更高峰+RSI更低峰
+    last = df.index[-1].date().isoformat()
+    assert all(d["date"] != last for d in divs)            # 锚在摆动点，非末根
+
+
+def test_divergence_empty_when_windows_overlap():
+    """event_study 传 lookback=len(df) 时两窗口无法不重叠 → 优雅返回空，不报错。"""
+    import numpy as np
+    from finloop.signals.turning_points import _detect_divergence
+    from tests.conftest import make_ohlcv
+    df = enrich(make_ohlcv(100 * 1.001 ** np.arange(150)))
+    assert _detect_divergence(df, lookback=len(df)) == []

@@ -125,10 +125,12 @@ def test_service_all_fail():
 # ---------------------------------------------------------------- 边界输入修复回归
 
 def test_stochastic_flat_price_no_division_error():
-    """一字横盘：高低区间为 0，KD 应输出中性 50 而不是 inf/NaN。"""
+    """一字横盘：区间为 0 → 暖机后置中性 50（不 inf）；暖机期保留 NaN（不捏造）。"""
     df = make_ohlcv(np.full(60, 100.0))
     df["high"] = 100.0
     df["low"] = 100.0
-    st = stochastic(df["high"], df["low"], df["close"])
-    assert np.isfinite(st["stoch_k"]).all()
-    assert (st["stoch_k"] == 50.0).all()
+    k = stochastic(df["high"], df["low"], df["close"])["stoch_k"]
+    assert not np.isinf(k).any()               # 无除零 inf
+    post = k.iloc[13:]                          # 暖机期后（14日窗口已满）
+    assert (post == 50.0).all()                # 区间为零 → 中性 50
+    assert k.iloc[:13].isna().all()            # 暖机期保留 NaN，不捏造成 50

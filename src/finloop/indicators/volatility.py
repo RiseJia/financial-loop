@@ -18,12 +18,15 @@ def bollinger(close: pd.Series, window: int = 20, num_std: float = 2.0) -> pd.Da
     std = close.rolling(window).std(ddof=0)  # 总体标准差，与教科书/TA-Lib 口径一致
     upper = mid + num_std * std
     lower = mid - num_std * std
+    band = upper - lower
+    # 一字横盘 std=0 → 带宽为零，%B 是 0/0：置中性 0.5（价格=中轨），不产生 NaN
+    pctb = ((close - lower) / band).where(band.abs() > 1e-12, 0.5)
     return pd.DataFrame({
         "bb_mid": mid,
         "bb_upper": upper,
         "bb_lower": lower,
-        "bb_pctb": (close - lower) / (upper - lower),
-        "bb_width": (upper - lower) / mid,
+        "bb_pctb": pctb,
+        "bb_width": (band / mid),
     })
 
 

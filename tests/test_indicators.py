@@ -83,3 +83,35 @@ def test_enrich_adds_all_columns(trending_up):
                 "adx", "bb_pctb", "atr14", "obv", "vol_ratio", "roc20"]:
         assert col in df.columns, col
     assert len(df) == len(trending_up)
+
+
+# ---------------------------------------------------------------- 对抗审计：指标定义修复
+
+def test_stochastic_warmup_preserved():
+    """暖机期(前13根)保留 NaN，不捏造成中性50——避免第14根跳变引发虚假金叉。"""
+    import pandas as pd
+    from finloop.indicators import stochastic
+    closes = pd.Series(range(1, 61), dtype=float)  # 严格递增
+    df = make_ohlcv(closes.to_numpy())
+    k = stochastic(df["high"], df["low"], df["close"])["stoch_k"]
+    assert k.iloc[:13].isna().all()      # 暖机期 NaN
+    assert k.iloc[13:].notna().all()     # 之后有效
+
+
+def test_volume_ratio_excludes_current_day():
+    """量比分母为过去N日均量，不含当日——放量日不自我稀释。"""
+    import numpy as np, pandas as pd
+    from finloop.indicators import volume_ratio
+    v = pd.Series([1e6] * 20 + [3e6])    # 前20日恒定，第21日放量3倍
+    vr = volume_ratio(v, window=20)
+    # 标准定义：3e6 / mean(前20日=1e6) = 3.0（含当日会被稀释到 < 3）
+    assert abs(vr.iloc[-1] - 3.0) < 1e-9
+
+
+def test_bollinger_flat_pctb_neutral():
+    """一字横盘带宽为零，%B 置中性 0.5，不产生 NaN。"""
+    import numpy as np, pandas as pd
+    from finloop.indicators import bollinger
+    bb = bollinger(pd.Series([100.0] * 40), window=20)
+    post = bb["bb_pctb"].iloc[20:]
+    assert post.notna().all() and (post == 0.5).all()

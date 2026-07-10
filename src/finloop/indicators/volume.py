@@ -30,5 +30,10 @@ def vwap(high: pd.Series, low: pd.Series, close: pd.Series, volume: pd.Series) -
 
 
 def volume_ratio(volume: pd.Series, window: int = 20) -> pd.Series:
-    """量比：当前成交量 / 近 N 日平均成交量。>2 为显著放量，<0.5 为缩量。"""
-    return volume / volume.rolling(window).mean()
+    """量比：当前成交量 / 过去 N 日平均成交量（**不含当日**）。>2 显著放量，<0.5 缩量。
+
+    标准定义的分母是"过去 N 日"均量，不含当日——把当日算进分母会把量比
+    向 1 收缩、系统性低估放量幅度（放量日自己拉高了分母）。用 shift(1) 排除当日。
+    """
+    prior_avg = volume.shift(1).rolling(window).mean()
+    return volume / prior_avg

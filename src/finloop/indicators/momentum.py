@@ -33,9 +33,13 @@ def stochastic(high: pd.Series, low: pd.Series, close: pd.Series,
     """
     lowest = low.rolling(k_window).min()
     highest = high.rolling(k_window).max()
-    # 一字横盘时高低区间为 0，按中性 50 处理（避免除零）
-    span = (highest - lowest).where(lambda s: s > 0)
-    k = (100 * (close - lowest) / span).fillna(50.0)
+    span = highest - lowest
+    k = 100 * (close - lowest) / span
+    # 仅在"区间已定义但为零"（一字横盘 highest==lowest）处置中性 50——避免除零；
+    # 暖机期（前 k_window-1 根 highest/lowest 为 NaN）必须保留 NaN，不能捏造成 50，
+    # 否则会在第 k_window 根出现 50→真实值跳变，诱发 KD 虚假金叉/死叉。
+    flat = span.notna() & (span.abs() < 1e-12)
+    k = k.mask(flat, 50.0)
     d = k.rolling(d_window).mean()
     return pd.DataFrame({"stoch_k": k, "stoch_d": d})
 

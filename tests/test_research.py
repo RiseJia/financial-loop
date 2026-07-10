@@ -48,16 +48,17 @@ def test_scenario_matrix_smoke():
 
 # ---------------------------------------------------------------- 筛选器
 
-def make_fund(rev, earn, margin, fpe, peg):
+def make_fund(rev, earn, margin, fpe, ps):
+    """估值端字段现为 forwardPE + P/S（PEG 已弃用，避免增长双计）。"""
     return {"revenueGrowth": rev, "earningsGrowth": earn, "grossMargins": margin,
-            "forwardPE": fpe, "pegRatio": peg}
+            "forwardPE": fpe, "priceToSalesTrailing12Months": ps}
 
 
 def test_screener_ranks_demand_vs_valuation():
     fundamentals = {
-        "CHEAP_GROWTH": make_fund(0.60, 0.80, 0.55, 18.0, 0.6),   # 高需求低估值
-        "HOT_EXPENSIVE": make_fund(0.55, 0.70, 0.60, 95.0, 3.5),  # 高需求高估值
-        "NO_GROWTH": make_fund(0.02, -0.05, 0.30, 30.0, 2.8),     # 低需求
+        "CHEAP_GROWTH": make_fund(0.60, 0.80, 0.55, 18.0, 3.0),   # 高需求低估值
+        "HOT_EXPENSIVE": make_fund(0.55, 0.70, 0.60, 95.0, 25.0), # 高需求高估值
+        "NO_GROWTH": make_fund(0.02, -0.05, 0.30, 30.0, 8.0),     # 低需求
     }
     scored = score_universe(fundamentals)
     assert scored.index[0] == "CHEAP_GROWTH"
@@ -67,7 +68,7 @@ def test_screener_ranks_demand_vs_valuation():
 
 def test_screener_missing_fields_neutral():
     fundamentals = {
-        "FULL": make_fund(0.30, 0.30, 0.50, 25.0, 1.0),
+        "FULL": make_fund(0.30, 0.30, 0.50, 25.0, 6.0),
         "EMPTY": {},
         "HALF": {"revenueGrowth": 0.50, "forwardPE": 20.0},
     }
@@ -78,7 +79,7 @@ def test_screener_missing_fields_neutral():
 
 
 def test_screener_constant_column_no_nan():
-    fundamentals = {f"T{i}": make_fund(0.2, 0.2, 0.5, 30.0, 1.5) for i in range(4)}
+    fundamentals = {f"T{i}": make_fund(0.2, 0.2, 0.5, 30.0, 6.0) for i in range(4)}
     scored = score_universe(fundamentals)  # 零方差列 → z 全 0，不除零
     assert (scored["gap"] == 0).all()
 
@@ -115,3 +116,55 @@ def test_load_universe_nested_flatten(tmp_path, monkeypatch):
     assert uni["upstream"]["AMKR"] == "封装·Amkor"
     assert uni["upstream"]["flat_direct"] == "直接标签"  # 新旧格式可混用
     assert uni["midstream"]["MSFT"] == "Azure"
+
+
+# ---------------------------------------------------------------- 筛选器金融正确性（对抗审计修复）
+
+def test_screener_sector_neutralization():
+    """组内需求信号相同、仅商业模式中枢不同 → 行业中性化后 gap 应全 0。"""
+    fund, sectors = {}, {}
+    for i in range(4):
+        fund[f"SW{i}"] = make_fund(0.25, 0.25, 0.85, 30.0, 12.0); sectors[f"SW{i}"] = "software"
+        fund[f"HW{i}"] = make_fund(0.25, 0.25, 0.25, 25.0, 4.0); sectors[f"HW{i}"] = "hardware"
+    s = score_universe(fund, sectors=sectors)
+    assert s["gap"].abs().max() < 1e-9          # 组内相同 → 无行业偏置
+    s_bare = score_universe(fund)               # 裸横截面 → 出现行业偏置
+    assert s_bare["gap"].abs().max() > 0.1
+
+
+def test_screener_ps_penalizes_loss_maker():
+    """负 PE 的高增长股靠高 P/S 承受估值惩罚，不再逃到中性登顶。"""
+    fund = {
+        "LOSS_HYPE": make_fund(0.6, 0.6, 0.5, -40.0, 25.0),   # 亏损+高P/S
+        "CHEAP_GROW": make_fund(0.5, 0.5, 0.5, 18.0, 3.0),    # 盈利+便宜
+        "FAIR": make_fund(0.3, 0.3, 0.5, 25.0, 6.0),
+    }
+    s = score_universe(fund)
+    assert s.loc["LOSS_HYPE", "valuation_score"] > 0          # 被判"贵"
+    assert s.index[0] == "CHEAP_GROW"                          # 真便宜的登顶
+
+
+def test_screener_no_growth_double_count():
+    """估值端不含 PEG：两只需求相同、仅增速不同的股，增速只影响需求端一次。
+
+    验证方式：估值字段完全相同（同 PE/PS），gap 差异应等于需求分差异。
+    """
+    fund = {
+        "HI_G": make_fund(0.8, 0.8, 0.5, 25.0, 6.0),
+        "LO_G": make_fund(0.1, 0.1, 0.5, 25.0, 6.0),
+    }
+    s = score_universe(fund)
+    gap_diff = s.loc["HI_G", "gap"] - s.loc["LO_G", "gap"]
+    dem_diff = s.loc["HI_G", "demand_score"] - s.loc["LO_G", "demand_score"]
+    # 估值分相同 → gap 差完全来自需求分差（增长不被估值端二次计入）
+    assert abs(gap_diff - dem_diff) < 1e-9
+    assert abs(s.loc["HI_G", "valuation_score"] - s.loc["LO_G", "valuation_score"]) < 1e-9
+
+
+def test_screener_sides_equal_scale():
+    """需求/估值两侧均为字段 z 的均值 → 同 ±3 量纲，gap 不结构性偏向需求。"""
+    fund = {f"T{i}": make_fund(0.1 * i, 0.1 * i, 0.3 + 0.1 * i, 20 + 5 * i, 3 + i)
+            for i in range(5)}
+    s = score_universe(fund)
+    assert s["demand_score"].abs().max() <= 3.0 + 1e-9
+    assert s["valuation_score"].abs().max() <= 3.0 + 1e-9

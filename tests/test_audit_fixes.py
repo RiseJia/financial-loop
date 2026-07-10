@@ -148,14 +148,15 @@ def test_m7_corrupted_cache_treated_as_miss(trending_up, monkeypatch):
 def test_m8_negative_pe_not_ranked_cheapest():
     from finloop.screener import score_universe
     base = {"revenueGrowth": 0.40, "earningsGrowth": 0.40, "grossMargins": 0.50}
+    # 亏损公司负 PE → NaN，但高 P/S 施加估值惩罚（不再逃到中性 z=0）
     fundamentals = {
-        "LOSS_MAKER": {**base, "forwardPE": -40.0, "pegRatio": -1.0},
-        "FAIR": {**base, "forwardPE": 25.0, "pegRatio": 1.0},
-        "PRICEY": {**base, "forwardPE": 90.0, "pegRatio": 3.0},
+        "LOSS_MAKER": {**base, "forwardPE": -40.0, "priceToSalesTrailing12Months": 25.0},
+        "FAIR": {**base, "forwardPE": 25.0, "priceToSalesTrailing12Months": 6.0},
+        "PRICEY": {**base, "forwardPE": 90.0, "priceToSalesTrailing12Months": 20.0},
     }
     scored = score_universe(fundamentals)
     assert scored.index[0] == "FAIR"          # 真低估值第一
-    assert scored.loc["LOSS_MAKER", "gap"] <= scored.loc["FAIR", "gap"]
+    assert scored.loc["LOSS_MAKER", "gap"] <= scored.loc["FAIR", "gap"]  # P/S 惩罚亏损高估值
 
 
 # ---------------------------------------------------------------- 规则③：增速强背离

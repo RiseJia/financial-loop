@@ -19,11 +19,23 @@
 它不是答案，是研究队列的生成器。
 ================================================================
 
-打分模型（横截面 z-score 合成）：
-  demand_score   = z(营收增速) + z(盈利增速) + z(毛利率)
-  valuation_pen  = z(forward PE) + z(PEG)        # 越高越贵
-  gap = demand_score − valuation_pen             # 「需求 − 估值定价」缺口
-  缺字段时按该字段横截面中位数填充（不奖励也不惩罚缺数据者，但标记覆盖率）。
+打分模型（行业中性横截面 z-score）：
+  demand_score   = mean[ z(营收增速), z(盈利增速), z(毛利率) ]        # 均值→±3 量纲
+  valuation_score= mean[ z(forward PE), z(P/S) ]                       # 纯价格倍数，越高越贵
+  gap = demand_score − valuation_score                                # 「需求 − 估值定价」缺口
+
+金融正确性要点（2026-06 对抗审计后重构，见 docs/data_quality.md）：
+  1. 行业中性化：z-score 在**可比组内**计算（sector/子链），因为 PE 与毛利率的
+     结构性中枢由商业模式决定（软件毛利 80% vs EMS 10%、公用事业 PE 15 vs GPU 35）；
+     跨行业裸横截面会让 gap 被行业成分而非真实错价主导。
+  2. 增长不双计：估值端用 P/S 而非 PEG——PEG=PE/增长，会把已在需求端的增长
+     再从估值端奖励一次。纯价格倍数（PE、P/S）与增长正交，gap 本身即"增长 vs 价格"。
+  3. 亏损公司的估值兜底：负 PE 置 NaN 后由 P/S 施加估值惩罚，而非填中性 z=0
+     让无盈利高增长泡沫逃过估值。
+  4. 等权：demand/valuation 各取字段 z 的均值（而非求和），两侧同为 ±3 量纲，
+     gap 不再结构性偏向字段更多的一侧。
+  5. 离散度无偏：z 的中心与标准差只用**观测值**计算，缺失值事后填 0（中性），
+     避免"先中位数填充再算 std"压缩离散度、放大少数真实值。
 """
 
 from __future__ import annotations
@@ -41,44 +53,70 @@ DEMAND_FIELDS = [
 ]
 VALUATION_FIELDS = [
     ("forwardPE", "前瞻PE", -1),
-    ("pegRatio", "PEG", -1),
+    ("priceToSalesTrailing12Months", "P/S", -1),
 ]
 ALL_FIELDS = DEMAND_FIELDS + VALUATION_FIELDS
+MIN_GROUP = 4  # 组内成员少于此值无法稳健 z-score，并入 "_other" 池
 
 
-def _zscore(s: pd.Series) -> pd.Series:
-    """横截面 z-score；缺失值填中位数（z=0 中性）；剪裁 ±3 抗离群。"""
-    filled = s.fillna(s.median())
-    std = filled.std(ddof=0)
-    if not np.isfinite(std) or std < 1e-12:
-        return pd.Series(0.0, index=s.index)
-    return ((filled - filled.median()) / std).clip(-3, 3)
+def _zscore_within_groups(s: pd.Series, group: pd.Series) -> pd.Series:
+    """按 group 分组做组内 z-score。
+
+    - 中心与标准差只用组内**观测值**（非 NaN）计算，缺失值最后填 0（中性），
+      避免填充压缩离散度；
+    - 成员 < MIN_GROUP 的小组合并进 "_other" 一起标准化（否则 1-2 人组恒为 0）；
+    - 组内零方差 → 该组全 0。剪裁 ±3 抗离群。
+    """
+    g = group.reindex(s.index).fillna("_other").astype(str)
+    counts = g.value_counts()
+    g = g.where(g.map(counts) >= MIN_GROUP, "_other")
+
+    out = pd.Series(0.0, index=s.index)
+    for name, idx in g.groupby(g).groups.items():
+        vals = s.loc[idx]
+        obs = vals.dropna()
+        if len(obs) < 2:
+            continue
+        med, std = obs.median(), obs.std(ddof=0)
+        if not np.isfinite(std) or std < 1e-12:
+            continue
+        z = ((vals - med) / std).clip(-3, 3)
+        out.loc[idx] = z.fillna(0.0)
+    return out
 
 
-def score_universe(fundamentals: dict[str, dict]) -> pd.DataFrame:
+def score_universe(fundamentals: dict[str, dict],
+                   sectors: dict[str, str] | None = None) -> pd.DataFrame:
     """纯函数打分（可离线测试）。
 
     fundamentals: {ticker: {field: value}}，value 为原始数值。
+    sectors:      {ticker: 可比组标签}（sector/子链）。None 时全体为单一组
+                  （退化为跨行业裸横截面——仅用于同质小样本测试，生产必传）。
     返回按 gap 降序的 DataFrame。
     """
-    # reindex 保留全字段缺失的标的（from_dict 会丢空行），它们应显示 0/5 覆盖而非消失
     raw = pd.DataFrame.from_dict(fundamentals, orient="index").reindex(fundamentals.keys())
     for field, _, _ in ALL_FIELDS:
         if field not in raw.columns:
             raw[field] = np.nan
-    # 负 PE/PEG = 亏损公司，不是「便宜」——置 NaN 落到中性，而非被 z-score 当成最低估值
+    # 负/零 PE、P/S 无意义（亏损或数据错误）→ 置 NaN，由另一估值字段承担惩罚
     for field, _, _ in VALUATION_FIELDS:
         raw[field] = raw[field].where(raw[field] > 0)
 
-    demand = sum(_zscore(raw[f]) for f, _, _ in DEMAND_FIELDS)
-    valuation = sum(_zscore(raw[f]) for f, _, _ in VALUATION_FIELDS)
+    group = (pd.Series(sectors).reindex(raw.index) if sectors
+             else pd.Series("_all", index=raw.index))
+
+    def mean_z(fields):
+        zs = [_zscore_within_groups(raw[f], group) for f, _, _ in fields]
+        return sum(zs) / len(zs)  # 字段 z 的均值 → ±3 量纲，两侧同量纲可比
+
+    demand = mean_z(DEMAND_FIELDS)        # 越高 = 需求越强
+    valuation = mean_z(VALUATION_FIELDS)  # 越高 = 估值越贵（PE/PS 越大）
 
     out = pd.DataFrame({
         "demand_score": demand.round(2),
         "valuation_score": valuation.round(2),
         "gap": (demand - valuation).round(2),
     }, index=raw.index)
-    # 数据覆盖率：5 个字段里有几个是真实值
     out["coverage"] = raw[[f for f, _, _ in ALL_FIELDS]].notna().sum(axis=1).astype(str) + "/5"
     for field, label, _ in ALL_FIELDS:
         out[label] = raw[field]
@@ -100,18 +138,23 @@ def run_screen(universe: str = "ai", tier: str = "upstream",
         raise FileNotFoundError(f"universe '{universe}' 不存在")
     tiers = cfg if tier == "all" else {tier: cfg.get(tier, {})}
 
-    fundamentals, labels = {}, {}
+    fundamentals, labels, sectors = {}, {}, {}
     for t, members in tiers.items():
         for ticker, label in (members or {}).items():
             raw = get_fundamentals(ticker)
             fundamentals[ticker] = {k: v["value"] for k, v in raw.items()
                                     if not k.startswith("_")}
             labels[ticker] = f"{label}（{t}）" if tier == "all" else label
+            # 可比组用于行业中性化：优先 yfinance sector，缺失则退化到子链标签
+            # （label 形如 "子链·名称"），保证跨行业不裸混算（审计 critical 修复）
+            sub = label.split("·")[0] if "·" in label else t
+            sectors[ticker] = raw.get("_sector", sub)
     if not fundamentals:
         return pd.DataFrame()
 
     warnings = {t: validate_fundamentals(vals) for t, vals in fundamentals.items()}
-    scored = score_universe(fundamentals)
+    scored = score_universe(fundamentals, sectors=sectors)
+    scored.insert(2, "可比组", [sectors.get(t, "") for t in scored.index])
     scored.insert(0, "标签", [labels.get(t, "") for t in scored.index])
     scored.insert(1, "数据预警", ["；".join(warnings[t]) for t in scored.index])
     if archive:
@@ -156,14 +199,15 @@ def format_screen(scored: pd.DataFrame, tier: str) -> str:
     lines = [
         f"# AI 产业链筛选：需求 vs 估值（tier={tier}）",
         "",
-        "gap = 需求得分 − 估值得分（横截面 z-score）。**gap 高 ≠ 买入**，",
-        "它生成的是人工深挖队列：去读财报确认 backlog/交期/下游 capex 指引。",
+        "gap = 需求分 − 估值分（**行业内** z-score，纯价格倍数 PE/PS 不含增长）。",
+        "**gap 高 ≠ 买入**，它生成人工深挖队列：读财报确认 backlog/交期/capex 指引。",
         "",
-        "| 代码 | 标签 | gap | 需求分 | 估值分 | 覆盖 | 数据预警 | 营收增速 | 盈利增速 | 毛利率 | 前瞻PE | PEG |",
-        "|---|---|---|---|---|---|---|---|---|---|---|---|",
+        "| 代码 | 标签 | 可比组 | gap | 需求分 | 估值分 | 覆盖 | 数据预警 | 营收增速 | 盈利增速 | 毛利率 | 前瞻PE | P/S |",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for ticker, row in scored.iterrows():
-        cells = [ticker, str(row.get("标签", "")), f"{row['gap']:+.2f}",
+        cells = [ticker, str(row.get("标签", "")), str(row.get("可比组", "")),
+                 f"{row['gap']:+.2f}",
                  f"{row['demand_score']:+.2f}", f"{row['valuation_score']:+.2f}",
                  row["coverage"], str(row.get("数据预警", "")) or "-"]
         for _, label, _ in ALL_FIELDS:

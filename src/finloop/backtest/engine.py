@@ -74,11 +74,15 @@ class BacktestResult:
 
 def run_backtest(df: pd.DataFrame, positions: pd.Series, *,
                  strategy_name: str = "strategy", ticker: str = "?",
-                 cost_bps: float = 10.0) -> BacktestResult:
+                 cost_bps: float = 10.0, rf_annual: float = 0.0) -> BacktestResult:
     """df：enrich 后的日线；positions：策略输出的目标仓位（与 df 对齐）。
 
     指标的 warmup 期（前 200 根 sma200 为 NaN 等）由策略自己处理
     （NaN 条件比较结果为 False → 空仓），这天然等价于「上市初期不交易」。
+
+    rf_annual：年化无风险利率。**未投入的现金按 rf 计息**——否则空仓日收益记为 0，
+    会系统性惩罚会空仓的防御/择时策略、而永远满仓的买入持有不受影响，使
+    「没有策略跑赢买入持有」的比较对择时策略不公平。默认 0（保守，向后兼容）。
     """
     positions = positions.reindex(df.index).fillna(0.0).clip(-1, 1)
 
@@ -87,7 +91,14 @@ def run_backtest(df: pd.DataFrame, positions: pd.Series, *,
     turnover = positions.diff().abs().fillna(positions.abs())
     cost = turnover * cost_bps / 1e4
 
-    strat_ret = effective_pos * asset_ret - cost
+    # 未投入现金（多头下 1-仓位）按无风险日利率计息；做空不给现金回报（保守）
+    rf_daily = (1 + rf_annual) ** (1 / 252) - 1
+    cash_weight = (1 - effective_pos).clip(lower=0.0)
+
+    strat_ret = effective_pos * asset_ret + cash_weight * rf_daily - cost
+    # 净值下限保护：单bar 亏损不超过 100%（破产即归零），防止做空/杠杆的
+    # >100% 逆向波动使 cumprod 穿越零变负、污染全部下游指标
+    strat_ret = strat_ret.clip(lower=-0.9999)
     equity = (1 + strat_ret).cumprod()
     bench_equity = (1 + asset_ret).cumprod()
 
@@ -98,8 +109,9 @@ def run_backtest(df: pd.DataFrame, positions: pd.Series, *,
         equity=equity,
         benchmark_equity=bench_equity,
         positions=effective_pos,
-        metrics=compute_metrics(strat_ret, effective_pos),
-        benchmark_metrics=compute_metrics(asset_ret, pd.Series(1.0, index=df.index)),
+        metrics=compute_metrics(strat_ret, effective_pos, rf_annual=rf_annual),
+        benchmark_metrics=compute_metrics(asset_ret, pd.Series(1.0, index=df.index),
+                                          rf_annual=rf_annual),
         n_trades=n_trades,
         cost_bps=cost_bps,
     )

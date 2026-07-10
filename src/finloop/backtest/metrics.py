@@ -22,7 +22,12 @@ import pandas as pd
 TRADING_DAYS = 252
 
 
-def compute_metrics(returns: pd.Series, positions: pd.Series | None = None) -> dict:
+def compute_metrics(returns: pd.Series, positions: pd.Series | None = None,
+                    rf_annual: float = 0.0) -> dict:
+    """rf_annual：年化无风险利率。Sharpe = (年化收益 − rf) / 年化波动——
+    这是夏普的标准定义（超额收益/波动）。rf=0 是保守默认，但在高利率环境下
+    会高估 Sharpe，且若回测中现金收益也按 0 计，会不公平地惩罚会空仓的
+    防御/择时策略（见 engine.run_backtest 的现金计息）。"""
     returns = returns.dropna()
     n = len(returns)
     if n == 0:
@@ -31,13 +36,20 @@ def compute_metrics(returns: pd.Series, positions: pd.Series | None = None) -> d
                  "calmar", "win_rate", "exposure")} | {"max_underwater_days": 0}
 
     equity = (1 + returns).cumprod()
-    total_return = float(equity.iloc[-1] - 1)
+    final = float(equity.iloc[-1])
+    total_return = final - 1.0
     years = n / TRADING_DAYS
-    cagr = float(equity.iloc[-1] ** (1 / years) - 1) if years > 0 and equity.iloc[-1] > 0 else 0.0
+    # 爆仓（净值≤0）年化为 -100%，而非伪装成 0（否则选股表把清零策略显示为"持平"）
+    if final <= 0:
+        cagr = -1.0
+    elif years > 0:
+        cagr = float(final ** (1 / years) - 1)
+    else:
+        cagr = 0.0
     vol = float(returns.std() * np.sqrt(TRADING_DAYS))
-    # 标准定义：年化算术均值收益 / 年化波动（rf=0），而非 CAGR/vol
+    # 标准 Sharpe：(年化算术均值 − rf) / 年化波动
     ann_mean = float(returns.mean() * TRADING_DAYS)
-    sharpe = float(ann_mean / vol) if vol > 1e-12 else 0.0
+    sharpe = float((ann_mean - rf_annual) / vol) if vol > 1e-12 else 0.0
 
     # 峰值必须计入初始资本 1.0，否则首段亏损被低估（首日 -40% 会被报成回撤 0）
     peak = equity.cummax().clip(lower=1.0)

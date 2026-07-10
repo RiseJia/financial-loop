@@ -114,7 +114,7 @@ def cmd_backtest(args):
     for name in names:
         positions = get_strategy(name)(df)
         result = run_backtest(df, positions, strategy_name=name,
-                              ticker=ticker, cost_bps=args.cost)
+                              ticker=ticker, cost_bps=args.cost, rf_annual=args.rf)
         print("\n" + result.summary())
     print(f"\n{DISCLAIMER}")
     print("提醒：单票回测受幸存者偏差与过拟合影响，结论需多票+样本外验证，见 docs/backtesting.md")
@@ -258,6 +258,8 @@ def main(argv: list[str] | None = None):
                    help="策略名（buy_hold/sma200/macd/rsi_mr/momentum/all，默认all）")
     p.add_argument("--period", default="5y", help="回测区间（默认5y）")
     p.add_argument("--cost", type=float, default=10.0, help="单边成本bps（默认10）")
+    p.add_argument("--rf", type=float, default=0.04,
+                   help="年化无风险利率（默认4%；现金按此计息+Sharpe扣此，公平对待空仓策略）")
     p.set_defaults(func=cmd_backtest)
 
     p = sub.add_parser("eventstudy", help="信号事件研究：验证信号是否携带信息")

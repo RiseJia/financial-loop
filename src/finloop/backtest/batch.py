@@ -56,7 +56,8 @@ def run_scenario_matrix(n_paths: int = 5, cost_bps: float = 10.0) -> pd.DataFram
 # ---------------------------------------------------------------- 真实数据矩阵
 
 def run_real_matrix(tickers: list[str], period: str = "5y",
-                    cost_bps: float = 10.0) -> tuple[pd.DataFrame, pd.DataFrame]:
+                    cost_bps: float = 10.0,
+                    rf_annual: float = 0.04) -> tuple[pd.DataFrame, pd.DataFrame]:
     """策略 × 标的矩阵 + 分年度分解。返回 (matrix, yearly)。"""
     from ..data import get_daily
 
@@ -67,10 +68,11 @@ def run_real_matrix(tickers: list[str], period: str = "5y",
             continue
         df = enrich(raw)
         bench_ret = df["close"].pct_change().fillna(0.0)
-        bench = compute_metrics(bench_ret)
+        bench = compute_metrics(bench_ret, rf_annual=rf_annual)
         for name in ACTIVE_STRATEGIES:
             r = run_backtest(df, STRATEGIES[name](df),
-                             strategy_name=name, ticker=ticker, cost_bps=cost_bps)
+                             strategy_name=name, ticker=ticker, cost_bps=cost_bps,
+                             rf_annual=rf_annual)
             rows.append({
                 "ticker": ticker, "strategy": name,
                 "cagr": r.metrics["cagr"], "sharpe": r.metrics["sharpe"],

@@ -128,3 +128,46 @@ def test_event_study_structure(v_reversal):
             assert "excess" in s and "hit_rate" in s
     text = format_event_study(result, "TEST")
     assert "基线" in text and "|" in text
+
+
+# ---------------------------------------------------------------- 对抗审计：回测金融正确性
+
+def test_rf_cash_credit_helps_defensive_strategy():
+    """现金按 rf 计息 → 会空仓的策略总收益提高（消除对防御策略的不公平惩罚）。"""
+    import numpy as np
+    rng = np.random.default_rng(0)
+    df = make_ohlcv(100 * np.cumprod(1 + rng.normal(0, 0.01, 300)))
+    pos = pd.Series(0.0, index=df.index)      # 全程空仓
+    r_norf = run_backtest(df, pos, cost_bps=0, rf_annual=0.0)
+    r_rf = run_backtest(df, pos, cost_bps=0, rf_annual=0.04)
+    # 全程空仓：rf=0 净值持平 1.0；rf=4% 应约等于 4%/年 复利
+    assert abs(r_norf.equity.iloc[-1] - 1.0) < 1e-9
+    assert r_rf.equity.iloc[-1] > 1.04       # 300 交易日 > 1 年，约 +5%
+
+
+def test_sharpe_subtracts_risk_free():
+    """Sharpe 减去 rf：同一（有波动的）收益序列，rf 越高 Sharpe 越低。"""
+    import numpy as np
+    r = pd.Series(np.random.default_rng(1).normal(0.0008, 0.01, 252))  # 正漂移+波动
+    s0 = compute_metrics(r, rf_annual=0.0)["sharpe"]
+    s4 = compute_metrics(r, rf_annual=0.04)["sharpe"]
+    assert s0 > s4                            # 扣掉无风险后超额下降
+    # 定量：两者之差应约等于 rf/vol
+    vol = float(r.std() * (252 ** 0.5))
+    assert abs((s0 - s4) - 0.04 / vol) < 1e-9
+
+
+def test_short_blowup_nav_floored_nonnegative():
+    """做空遇 >100% 逆向单日波动，净值被下限保护不穿零。"""
+    import numpy as np
+    closes = np.array([100.0, 250.0, 250.0])   # 单日 +150%
+    df = make_ohlcv(closes)
+    pos = pd.Series([-1.0, -1.0, -1.0], index=df.index)  # 满仓做空
+    r = run_backtest(df, pos, cost_bps=0)
+    assert (r.equity > 0).all()                # 净值恒正，未穿零
+
+
+def test_cagr_blowup_is_minus_100pct():
+    """净值归零 → CAGR = -100%，不伪装成持平 0。"""
+    m = compute_metrics(pd.Series([-0.9999] + [0.0] * 300))
+    assert m["cagr"] < -0.99                   # 接近 -100%，不是 0

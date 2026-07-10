@@ -31,6 +31,7 @@ def _stooq_symbol(ticker: str) -> str | None:
 
 class StooqProvider:
     name = "stooq"
+    adjustment = "split_only" # 仅拆股，不复权分红
 
     def __init__(self, timeout: float = 15.0):
         self.timeout = timeout

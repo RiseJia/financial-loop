@@ -30,6 +30,7 @@ from .tiingo_provider import TiingoProvider
 
 class RegionalFallbackProvider:
     name = "regional-fallback"
+    adjustment = "mixed"  # 实际口径随路由子源而变，见 last_adjustment
 
     def __init__(self, tiingo: TiingoProvider | None = None,
                  taiwan: TaiwanProvider | None = None,
@@ -40,6 +41,7 @@ class RegionalFallbackProvider:
         self.naver = naver if naver is not None else NaverProvider()
         self.stooq = stooq if stooq is not None else StooqProvider()
         self.last_route: str | None = None
+        self.last_adjustment: str | None = None
 
     def _route(self, ticker: str):
         if ticker.endswith((".TW", ".TWO")):
@@ -53,6 +55,7 @@ class RegionalFallbackProvider:
     def fetch_daily(self, ticker: str, period: str) -> pd.DataFrame:
         provider = self._route(ticker)
         self.last_route = provider.name if provider else None
+        self.last_adjustment = getattr(provider, "adjustment", None) if provider else None
         if provider is None:
             return empty_ohlcv()
         return provider.fetch_daily(ticker, period)

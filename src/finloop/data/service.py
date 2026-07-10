@@ -35,6 +35,7 @@ class DataService:
         self.use_cache = use_cache
         self.last_report: QualityReport | None = None
         self.last_source: str | None = None
+        self.last_adjustment: str | None = None  # full/split_only/none——回测收益率口径
 
     # ------------------------------------------------------------ 日线
     def get_daily(self, ticker: str, period: str = "2y") -> pd.DataFrame:
@@ -44,6 +45,7 @@ class DataService:
                 report = validate_ohlcv(cached, ticker)
                 if report.ok:  # 缓存同样过质量门：被篡改/损坏的缓存视为未命中
                     self.last_source, self.last_report = "cache", report
+                    self.last_adjustment = None  # 缓存未记口径（cache-convention-blind）
                     return cached
 
         rejected: list[tuple[str, pd.DataFrame]] = []
@@ -56,6 +58,9 @@ class DataService:
             report = validate_ohlcv(df, ticker)
             if report.ok:
                 self.last_source, self.last_report = provider.name, report
+                # 复权口径：regional 备源随路由变化，读其 last_adjustment
+                self.last_adjustment = (getattr(provider, "last_adjustment", None)
+                                        or getattr(provider, "adjustment", None))
                 if report.warnings:
                     log.warning(report.summary())
                 if self.use_cache:

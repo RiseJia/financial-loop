@@ -62,6 +62,7 @@ class TaiwanProvider:
     """按后缀路由：.TW → TWSE，.TWO → TPEx。其余代码返回空。"""
 
     name = "taiwan-official"
+    adjustment = "none"      # 交易所原始价，未复权
 
     def __init__(self, timeout: float = 15.0, request_gap: float = REQUEST_GAP):
         self.timeout = timeout

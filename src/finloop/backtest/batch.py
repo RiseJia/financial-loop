@@ -59,13 +59,18 @@ def run_real_matrix(tickers: list[str], period: str = "5y",
                     cost_bps: float = 10.0,
                     rf_annual: float = 0.04) -> tuple[pd.DataFrame, pd.DataFrame]:
     """策略 × 标的矩阵 + 分年度分解。返回 (matrix, yearly)。"""
-    from ..data import get_daily
+    from ..data.service import default_service
 
-    rows, yearly_rows = [], []
+    rows, yearly_rows, non_full_adj = [], [], []
     for ticker in tickers:
-        raw = get_daily(ticker, period=period)
+        raw = default_service.get_daily(ticker, period=period)
         if len(raw) < 260:
             continue
+        # 复权口径检查：非全复权（未复权台股/仅拆股）的收益率会漏算股息、
+        # 在除息日被记为虚假亏损，与全复权美股在同一横截面不可比——标记之
+        adj = default_service.last_adjustment
+        if adj not in ("full", None):
+            non_full_adj.append(f"{ticker}({adj})")
         df = enrich(raw)
         bench_ret = df["close"].pct_change().fillna(0.0)
         bench = compute_metrics(bench_ret, rf_annual=rf_annual)
@@ -81,6 +86,7 @@ def run_real_matrix(tickers: list[str], period: str = "5y",
                 "excess_cagr": r.metrics["cagr"] - bench["cagr"],
                 "dd_saved": r.metrics["max_drawdown"] - bench["max_drawdown"],
                 "beats_bh": r.metrics["cagr"] > bench["cagr"],
+                "adjustment": adj or "unknown",
             })
             # 分年度
             strat_ret = r.equity.pct_change().fillna(0.0)
@@ -93,7 +99,10 @@ def run_real_matrix(tickers: list[str], period: str = "5y",
                     "ret": float((1 + grp).prod() - 1),
                     "bh_ret": float((1 + b_grp).prod() - 1),
                 })
-    return pd.DataFrame(rows), pd.DataFrame(yearly_rows)
+    matrix = pd.DataFrame(rows)
+    # 把非全复权标的清单挂到 attrs，供报告显形（no silent truncation）
+    matrix.attrs["non_full_adjustment"] = non_full_adj
+    return matrix, pd.DataFrame(yearly_rows)
 
 
 # ---------------------------------------------------------------- 汇总与报告
@@ -191,6 +200,17 @@ def write_real_report(matrix: pd.DataFrame, yearly: pd.DataFrame,
         "⚠️ 解读警告：标的池是当前的关注列表（幸存者+选择偏差），"
         "横截面统计缓解单票运气，但不消除池子本身的偏差。",
         "",
+    ]
+    non_full = matrix.attrs.get("non_full_adjustment") or []
+    if non_full:
+        lines += [
+            "🔴 **复权口径警告**：以下标的的数据源非全复权（未复权/仅拆股），其收益率"
+            "漏算股息、在除息日被记为虚假亏损，与全复权美股**不可横向比较**，其 "
+            "CAGR/Sharpe/beats_bh 被系统性低估：",
+            "　" + "、".join(non_full),
+            "",
+        ]
+    lines += [
         "## 策略横截面汇总",
         "",
     ]

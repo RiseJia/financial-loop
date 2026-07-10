@@ -35,6 +35,7 @@ def _tiingo_symbol(ticker: str) -> str | None:
 
 class TiingoProvider:
     name = "tiingo"
+    adjustment = "full"      # adjClose：拆股+分红全复权
 
     def __init__(self, api_key: str | None = None, timeout: float = 15.0):
         self.api_key = api_key if api_key is not None else os.environ.get("TIINGO_API_KEY", "")

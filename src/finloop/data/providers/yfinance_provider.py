@@ -16,6 +16,7 @@ from .base import empty_ohlcv, normalize_ohlcv
 
 class YFinanceProvider:
     name = "yfinance"
+    adjustment = "full"      # auto_adjust=True：拆股+分红全复权
 
     def __init__(self, retries: int = 3, backoff: float = 2.0):
         self.retries = retries

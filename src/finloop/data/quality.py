@@ -170,12 +170,15 @@ def repair_ohlcv(df: pd.DataFrame, ticker: str = "?") -> tuple[pd.DataFrame, lis
 
 
 def reconcile(primary: pd.DataFrame, secondary: pd.DataFrame,
-              tolerance: float = 0.01) -> dict:
+              tolerance: float = 0.01, recent_days: int | None = None) -> dict:
     """双源对账：比较两个来源在重叠日期上的收盘价。
 
     返回 {overlap_days, mean_abs_dev, max_abs_dev, n_breaches, breach_dates}。
-    注意：不同源的复权口径可能不同（如 Stooq 只做拆股调整、不做分红调整），
-    近端日期应高度一致，远端历史允许系统性小偏差——所以默认只对账最近一段。
+    ⚠️ 复权口径提醒：不同源口径不同（yfinance 全复权 vs Stooq 仅拆股 vs 台湾
+    未复权）。全复权 vs 未复权在**每个除息日**都会出现一次等于股息率的阶跃 →
+    breach。因此对账全部重叠日期时，breach 计数会随历史拉长而累积，多数是
+    "口径差异"而非"数据错误"。用 recent_days 限制到近端窗口（除息事件少）可
+    得到更干净的一致性判断；调用方（cross_check）也应通过 period 控制总窗口。
     """
     if primary.empty or secondary.empty:
         return {"overlap_days": 0}
@@ -184,6 +187,8 @@ def reconcile(primary: pd.DataFrame, secondary: pd.DataFrame,
     p.index = pd.to_datetime(p.index).tz_localize(None).normalize()
     s.index = pd.to_datetime(s.index).tz_localize(None).normalize()
     joined = pd.concat([p, s], axis=1, keys=["p", "s"], join="inner").dropna()
+    if recent_days is not None and len(joined) > recent_days:
+        joined = joined.iloc[-recent_days:]   # 只对账近端（口径分歧的除息事件更少）
     if joined.empty:
         return {"overlap_days": 0}
     dev = (joined["p"] / joined["s"] - 1).abs()

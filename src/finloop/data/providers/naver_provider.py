@@ -54,6 +54,7 @@ def _parse_sise(text: str) -> list[list]:
 
 class NaverProvider:
     name = "naver"
+    adjustment = "split_only" # 拆股调整，分红存疑
 
     def __init__(self, timeout: float = 15.0):
         self.timeout = timeout

@@ -134,3 +134,37 @@ def test_stochastic_flat_price_no_division_error():
     post = k.iloc[13:]                          # 暖机期后（14日窗口已满）
     assert (post == 50.0).all()                # 区间为零 → 中性 50
     assert k.iloc[:13].isna().all()            # 暖机期保留 NaN，不捏造成 50
+
+
+# ---------------------------------------------------------------- 对抗审计：复权口径
+
+def test_provider_adjustment_declared():
+    """每个 provider 声明复权口径，供下游判断收益率是否可比。"""
+    from finloop.data.providers import (YFinanceProvider, TiingoProvider,
+                                        StooqProvider, TaiwanProvider, NaverProvider)
+    assert YFinanceProvider.adjustment == "full"
+    assert TiingoProvider.adjustment == "full"
+    assert StooqProvider.adjustment == "split_only"
+    assert TaiwanProvider.adjustment == "none"
+    assert NaverProvider.adjustment == "split_only"
+
+
+def test_service_records_adjustment(trending_up):
+    """DataService 记录本次数据的复权口径。"""
+    class P:
+        name = "p"; adjustment = "full"
+        def fetch_daily(self, t, period): return trending_up
+        def fetch_intraday(self, *a): return trending_up
+    svc = DataService(P(), P(), use_cache=False)
+    svc.get_daily("X")
+    assert svc.last_adjustment == "full"
+
+
+def test_reconcile_recent_window_limits_breaches(trending_up):
+    """recent_days 限制对账窗口——只看近端可减少口径分歧的除息 breach 累积。"""
+    a = trending_up.copy()
+    b = trending_up.copy()
+    b.iloc[:100, b.columns.get_loc("close")] *= 1.05   # 远端 100 天系统性偏差
+    full = reconcile(a, b, tolerance=0.01)
+    recent = reconcile(a, b, tolerance=0.01, recent_days=50)
+    assert recent["n_breaches"] < full["n_breaches"]   # 近端窗口 breach 更少

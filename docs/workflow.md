@@ -108,4 +108,5 @@
 | 筛选 | `finloop screen --tier upstream` / `finloop analyze X` |
 | 策略 | `finloop signals X` / `finloop intraday X` |
 | 验证 | `finloop quality X` / `finloop backtest X` / `finloop eventstudy X` / `finloop research` |
+| **风险管理** | `finloop portfolio`（体检）/ `finloop size X`（ATR 仓位）——见 [portfolio.md](portfolio.md) |
 | 数据 | （自动）`data_cache/` + `reports/research/data/` 快照存档 |

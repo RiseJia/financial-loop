@@ -124,3 +124,50 @@ def test_divergence_empty_when_windows_overlap():
     from tests.conftest import make_ohlcv
     df = enrich(make_ohlcv(100 * 1.001 ** np.arange(150)))
     assert _detect_divergence(df, lookback=len(df)) == []
+
+
+def test_divergence_full_history_scan_for_event_study():
+    """行为回归：event_study 语义（lookback=len(df)）下背离产出全历史样本。
+
+    此前实现把 lookback 当窗口宽度，event_study 场景两窗口无法不重叠 →
+    背离恒空、从未被统计验证——由行为回测抓出。
+    """
+    import numpy as np
+    from finloop.signals.turning_points import _detect_divergence
+    from tests.conftest import make_ohlcv
+    # 多段涨跌交替（背离高发形态）
+    segs = []
+    lvl = 100.0
+    rng = np.random.default_rng(3)
+    for k in range(6):
+        tgt = lvl * (1.25 if k % 2 == 0 else 0.9)
+        segs.append(np.linspace(lvl, tgt, 60))
+        lvl = tgt
+    df = enrich(make_ohlcv(np.concatenate(segs)))
+    divs = _detect_divergence(df, lookback=len(df))
+    assert len(divs) >= 1                       # 全历史扫描有产出
+    # 去重有效：同类型信号锚点间隔 ≥ 半窗
+    from finloop.signals.turning_points import DIVERGENCE_WINDOW
+    by_type = {}
+    for d in divs:
+        by_type.setdefault(d["type"], []).append(d["date"])
+    idx = {ts.date().isoformat(): i for i, ts in enumerate(df.index)}
+    for dates in by_type.values():
+        pos = sorted(idx[d] for d in dates)
+        assert all(b - a >= DIVERGENCE_WINDOW // 2 for a, b in zip(pos, pos[1:]))
+
+
+def test_regime_state_machine_reduces_flips_materially():
+    """滞回状态机在缠绕序列上把翻转次数至少降 40%（行为标定 persist=5→~52%）。"""
+    import numpy as np
+    from finloop.signals.regime import _raw_regime, classify_regime
+    from tests.conftest import make_ohlcv
+    rng = np.random.default_rng(7)
+    df = enrich(make_ohlcv(100 * np.cumprod(1 + rng.normal(0.0002, 0.012, 500))))
+    warm = int(df["sma200"].isna().sum())
+    raws = [_raw_regime(df.iloc[i]) for i in range(warm, len(df))]
+    raw_flips = sum(a != b for a, b in zip(raws, raws[1:]))
+    conf = [classify_regime(df.iloc[:end])["regime"]
+            for end in range(warm + 20, len(df))]
+    conf_flips = sum(a != b for a, b in zip(conf, conf[1:]))
+    assert conf_flips <= raw_flips * 0.6

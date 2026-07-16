@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "finloop"
-version = "0.4.0"
+version = "0.4.1"
 description = "美股金融分析与投资决策框架：长线 + 日内 + 每日市场报告"
 requires-python = ">=3.10"
 dependencies = [

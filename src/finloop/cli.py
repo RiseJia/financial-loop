@@ -235,12 +235,17 @@ def cmd_portfolio(args):
     for tier in load_universe("ai").values():
         for tkr, label in tier.items():
             groups[tkr] = label.split("·")[0] if "·" in label else label
+    valid_nodes = None
     try:
-        alerts = node_alerts_from_state(load_state())
-    except Exception:
+        state = load_state()
+        alerts = node_alerts_from_state(state)
+        valid_nodes = set((state.get("nodes") or {}).keys())
+    except Exception as exc:
         alerts = {}
+        print(f"（research_state 加载失败，论点触发器联动降级：{exc}）")
 
-    rep = evaluate(pf, prices, groups=groups, node_alerts=alerts)
+    rep = evaluate(pf, prices, groups=groups, node_alerts=alerts,
+                   valid_nodes=valid_nodes)
     print(f"\n组合总值 {rep['total_value']:,.0f} | 现金 {rep['cash']:,.0f}"
           f"（{rep['cash_pct']:.1f}%）\n")
     print(f"{'代码':<10}{'股数':>8}{'成本':>10}{'现价':>10}{'盈亏%':>8}"
@@ -274,15 +279,26 @@ def cmd_size(args):
     atr = float(df["atr14"].iloc[-1])
     pf = load_portfolio()
     limits = pf["limits"]
-    capital = args.capital or (pf["cash"] +
-                               sum(float(p["shares"]) * float(p.get("cost") or 0)
-                                   for p in pf["positions"]))
+    capital = args.capital
+    if capital is None:
+        # 总资产按**市值**汇总（红队 M1：成本口径在持仓大涨后低估资产→仓位
+        # 偏保守，大跌后高估→偏激进——跌后过度冒险正是风控最该防的方向）
+        from .data import get_last_quote
+        capital = pf["cash"]
+        for p in pf["positions"]:
+            q = get_last_quote(p["ticker"])
+            px = q.get("price") or float(p.get("cost") or 0)
+            if not q.get("price"):
+                print(f"（{p['ticker']} 无最新价，按成本计入总资产）")
+            capital += float(p["shares"]) * px
     if capital <= 0:
         sys.exit("总资产为 0：用 --capital 指定，或在 portfolio.local.yaml 填入 cash")
     s = position_size(price, atr, capital,
                       risk_frac=args.risk or limits["risk_per_trade"],
                       stop_atr_mult=limits["stop_atr_mult"],
                       max_position_pct=limits["max_position_pct"])
+    if not s.get("viable", True):
+        sys.exit(f"{ticker}：无法给出仓位——{s['reason']}")
     print(f"\n{ticker} 仓位计算（ATR 法，总资产 {capital:,.0f}）")
     print(f"  现价 {price:.2f} | ATR14 {atr:.2f}（{atr / price * 100:.1f}%）")
     print(f"  建议股数：{s['shares']}（约束生效方：{'单笔风险' if s['binding'] == 'risk' else '单标的上限'}）")

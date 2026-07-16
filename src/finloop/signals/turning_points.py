@@ -112,6 +112,9 @@ def detect_turning_points(df: pd.DataFrame, lookback: int = 30,
     return events
 
 
+DIVERGENCE_WINDOW = 30  # 背离检测的单侧摆动窗口（根）
+
+
 def _detect_divergence(df: pd.DataFrame, lookback: int) -> list[dict]:
     """背离检测：在**价格摆动极值处**配对比较指标读数（而非各窗口的指标自身极值）。
 
@@ -123,29 +126,47 @@ def _detect_divergence(df: pd.DataFrame, lookback: int) -> list[dict]:
       底背离 = 近端价格波谷 < 前端价格波谷，但两波谷处指标读数近端 > 前端。
     信号日期锚定在**近端摆动极值那一根**（在序列内部，非末根）——使事件研究
     能计算其前向收益（此前锚在末根 → 前向收益恒 NaN → 背离从不进入事件研究）。
+    实现（2026-07 行为回测修订）：**全历史滚动扫描**——固定单侧窗口
+    DIVERGENCE_WINDOW（30 根），沿序列滚动比较相邻两窗口的价格摆动配对；
+    lookback 只做"报告场景保留最近多少根内的信号"的过滤（event_study 传
+    lookback=len(df) 即取全样本）。此前实现把 lookback 同时当窗口宽度用，
+    event_study 场景下两窗口无法不重叠 → 背离恒为空样本、从未被统计验证
+    ——该回归由行为回测抓出（审计只验了代码路径，没验调用方语义）。
+    同一摆动极值会被多个滚动步命中：按锚定位置去重（同类型间隔 <半窗视为
+    同一事件）。滚动扫描仍是因果的：每步只用该步终点之前的数据。
     """
     out = []
-    if lookback * 2 > len(df) or lookback < 3:
-        return out  # 需要两个不重叠窗口；event_study 的 lookback=len(df) 场景优雅跳过
-    recent, prior = df.iloc[-lookback:], df.iloc[-lookback * 2:-lookback]
+    n = len(df)
+    window = DIVERGENCE_WINDOW
+    if n < window * 2:
+        return out
+    seen: dict[str, int] = {}   # 信号类型 -> 上次锚定位置（去重）
+    step = max(window // 6, 3)
 
-    for col, label in (("rsi14", "RSI"), ("obv", "OBV")):
-        # 顶背离：价格峰处配对
-        r_hi, p_hi = recent["close"].idxmax(), prior["close"].idxmax()
-        if recent.loc[r_hi, "close"] > prior.loc[p_hi, "close"] and \
-           recent.loc[r_hi, col] < prior.loc[p_hi, col]:
-            out.append({
-                "date": r_hi.date().isoformat() if hasattr(r_hi, "date") else str(r_hi),
-                "type": f"{label}顶背离", "direction": "bearish", "strength": 2,
-                "description": f"价格创出更高的高点，但该高点处的 {label} 读数低于前一波峰：上涨的内在动能/资金支持在减弱，趋势衰竭预警（背离是减仓提示，非精确反转时点）。",
-            })
-        # 底背离：价格谷处配对
-        r_lo, p_lo = recent["close"].idxmin(), prior["close"].idxmin()
-        if recent.loc[r_lo, "close"] < prior.loc[p_lo, "close"] and \
-           recent.loc[r_lo, col] > prior.loc[p_lo, col]:
-            out.append({
-                "date": r_lo.date().isoformat() if hasattr(r_lo, "date") else str(r_lo),
-                "type": f"{label}底背离", "direction": "bullish", "strength": 2,
-                "description": f"价格创出更低的低点，但该低点处的 {label} 读数高于前一波谷：抛压在衰竭，下跌动能与价格背离，关注企稳反转的可能。",
-            })
+    def emit(anchor_idx, type_, direction, desc):
+        pos = df.index.get_loc(anchor_idx)
+        last = seen.get(type_)
+        if last is not None and pos - last < window // 2:
+            return                      # 同一摆动的重复命中
+        seen[type_] = pos
+        if (n - pos) > lookback:
+            return                      # 报告场景的近端过滤
+        d = anchor_idx.date().isoformat() if hasattr(anchor_idx, "date") else str(anchor_idx)
+        out.append({"date": d, "type": type_, "direction": direction,
+                    "strength": 2, "description": desc})
+
+    for end in range(window * 2, n + 1, step):
+        recent = df.iloc[end - window:end]
+        prior = df.iloc[end - 2 * window:end - window]
+        for col, label in (("rsi14", "RSI"), ("obv", "OBV")):
+            r_hi, p_hi = recent["close"].idxmax(), prior["close"].idxmax()
+            if recent.loc[r_hi, "close"] > prior.loc[p_hi, "close"] and \
+               recent.loc[r_hi, col] < prior.loc[p_hi, col]:
+                emit(r_hi, f"{label}顶背离", "bearish",
+                     f"价格创出更高的高点，但该高点处的 {label} 读数低于前一波峰：上涨的内在动能/资金支持在减弱，趋势衰竭预警（背离是减仓提示，非精确反转时点）。")
+            r_lo, p_lo = recent["close"].idxmin(), prior["close"].idxmin()
+            if recent.loc[r_lo, "close"] < prior.loc[p_lo, "close"] and \
+               recent.loc[r_lo, col] > prior.loc[p_lo, col]:
+                emit(r_lo, f"{label}底背离", "bullish",
+                     f"价格创出更低的低点，但该低点处的 {label} 读数高于前一波谷：抛压在衰竭，下跌动能与价格背离，关注企稳反转的可能。")
     return out

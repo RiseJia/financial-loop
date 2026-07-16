@@ -116,3 +116,61 @@ def test_load_portfolio_defaults(tmp_path):
     assert pf["cash"] == 5000.0
     assert pf["limits"]["max_position_pct"] == 0.10     # 用户覆盖
     assert pf["limits"]["min_cash_pct"] == 0.05          # 默认保留
+
+
+# ---------------------------------------------------------------- 红队二审修复
+
+def test_C1_limits_string_and_unknown_key_safe(tmp_path):
+    """字符串值/拼错键不再崩溃或静默——强转+警告。"""
+    f = tmp_path / "p.yaml"
+    f.write_text('cash: 1000\nlimits:\n  max_position_pct: "0.2"\n'
+                 '  max_postion_pct: 0.5\npositions: []\n', encoding="utf-8")
+    pf = load_portfolio(f)
+    assert pf["limits"]["max_position_pct"] == 0.20      # 字符串被 float 强转
+    assert any("未知键" in w for w in pf["config_warnings"])  # 拼错键显形
+    rep = evaluate(pf, prices={})                          # 不崩溃
+    assert any("配置" in m for _, m in rep["findings"])
+
+
+def test_C2_split_lots_aggregate_for_position_limit():
+    """同 ticker 分批建仓（各 15%）合计 30% → 触发单标的上限警告。"""
+    pf = make_pf([
+        {"ticker": "NVDA", "shares": 15, "cost": 100},
+        {"ticker": "NVDA", "shares": 15, "cost": 100},
+    ], cash=7000)   # 各 ~15%，合计 ~30% > 20%
+    rep = evaluate(pf, prices={"NVDA": 100.0})
+    assert any("NVDA" in m and "合计权重" in m and "超单标的上限" in m
+               for _, m in rep["findings"])
+
+
+def test_M2_negative_stop_rejected():
+    """2×ATR ≥ 现价 → 拒绝出仓位而非给出负止损价。"""
+    s = position_size(price=10.0, atr=6.0, total_capital=100_000)
+    assert s["viable"] is False and s["stop"] is None
+    assert "不适用" in s["reason"]
+
+
+def test_m1_zero_shares_flagged():
+    """资金不足 1 股 → viable=False 并说明原因。"""
+    s = position_size(price=700_000.0, atr=10_000.0, total_capital=50_000)
+    assert s["viable"] is False and s["shares"] == 0
+
+
+def test_M4_short_position_refused_not_miscalculated():
+    """做空记录被拒算并警告，不再按错误语义计算 pnl/止损/权重。"""
+    pf = make_pf([{"ticker": "X", "shares": -100, "cost": 50, "stop": 60}],
+                 cash=10_000)
+    rep = evaluate(pf, prices={"X": 40.0})
+    assert any("做空" in m for _, m in rep["findings"])
+    assert not any(lvl == "critical" for lvl, _ in rep["findings"])  # 无错误的止损误报
+    assert rep["rows"][0]["value"] == 0.0                             # 不污染权重分母
+
+
+def test_M3_invalid_node_flagged():
+    """node 拼错时显形提示联动未生效，而非静默。"""
+    pf = make_pf([{"ticker": "A", "shares": 10, "cost": 100,
+                   "node": "ai_capex"}], cash=10_000)
+    rep = evaluate(pf, prices={"A": 100.0},
+                   node_alerts={"ai-capex": ["fired!"]},
+                   valid_nodes={"ai-capex"})
+    assert any("联动未生效" in m for _, m in rep["findings"])

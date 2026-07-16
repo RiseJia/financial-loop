@@ -13,6 +13,9 @@
     finloop signals TICKER          拐点与动量切换信号
     finloop intraday TICKER         日内视角（5 分钟线）
     finloop explain INDICATOR       指标教学详解（rsi/macd/...）
+  组合与风险（第五部件）
+    finloop portfolio               组合体检：权重/集中度/止损/论点触发器联动
+    finloop size TICKER             ATR 仓位法：建仓股数与止损价
   验证
     finloop backtest TICKER         策略回测 vs 买入持有
     finloop eventstudy TICKER       信号事件研究
@@ -210,6 +213,87 @@ def cmd_loop_status(args):
     sys.exit(0 if st.can_exit else 1)  # 退出码可用于自动化（CI/cron 判定）
 
 
+def cmd_portfolio(args):
+    from .config import load_universe
+    from .data import get_last_quote
+    from .portfolio import evaluate, load_portfolio, node_alerts_from_state
+    from .research_loop import load_state
+
+    pf = load_portfolio()
+    if not pf["positions"]:
+        print("组合为空。复制 config/portfolio.yaml → config/portfolio.local.yaml "
+              "填入持仓后重试（.local 已 gitignore，不会推到远端）。")
+        return
+
+    # 组装外部输入：最新价、子链分组、论点触发器黄灯
+    prices = {}
+    for p in pf["positions"]:
+        q = get_last_quote(p["ticker"])
+        if q.get("price"):
+            prices[p["ticker"]] = q["price"]
+    groups = {}
+    for tier in load_universe("ai").values():
+        for tkr, label in tier.items():
+            groups[tkr] = label.split("·")[0] if "·" in label else label
+    try:
+        alerts = node_alerts_from_state(load_state())
+    except Exception:
+        alerts = {}
+
+    rep = evaluate(pf, prices, groups=groups, node_alerts=alerts)
+    print(f"\n组合总值 {rep['total_value']:,.0f} | 现金 {rep['cash']:,.0f}"
+          f"（{rep['cash_pct']:.1f}%）\n")
+    print(f"{'代码':<10}{'股数':>8}{'成本':>10}{'现价':>10}{'盈亏%':>8}"
+          f"{'权重%':>8}{'止损':>10}  子链")
+    for r in rep["rows"]:
+        px = f"{r['price']:.2f}" if r["priced"] else "(成本)"
+        pnl = f"{r['pnl_pct']:+.1f}" if r["pnl_pct"] is not None else "-"
+        stop = f"{float(r['stop']):.2f}" if r.get("stop") else "-"
+        print(f"{r['ticker']:<10}{r['shares']:>8.0f}{r['cost']:>10.2f}{px:>10}"
+              f"{pnl:>8}{r.get('weight_pct', 0):>8.1f}{stop:>10}  {r['group']}")
+    if rep["findings"]:
+        print("\n体检发现：")
+        icon = {"critical": "🔴", "warning": "🟡", "info": "ℹ️"}
+        for level, msg in rep["findings"]:
+            print(f"  {icon.get(level, '·')} {msg}")
+    else:
+        print("\n体检发现：✅ 全部纪律检查通过")
+    print(f"\n{DISCLAIMER}")
+
+
+def cmd_size(args):
+    from .data import get_daily
+    from .indicators import enrich
+    from .portfolio import load_portfolio, position_size
+
+    ticker = args.ticker.upper()
+    df = enrich(get_daily(ticker, period="6mo"))
+    if df.empty:
+        sys.exit(f"无法获取 {ticker} 的行情数据")
+    price = float(df["close"].iloc[-1])
+    atr = float(df["atr14"].iloc[-1])
+    pf = load_portfolio()
+    limits = pf["limits"]
+    capital = args.capital or (pf["cash"] +
+                               sum(float(p["shares"]) * float(p.get("cost") or 0)
+                                   for p in pf["positions"]))
+    if capital <= 0:
+        sys.exit("总资产为 0：用 --capital 指定，或在 portfolio.local.yaml 填入 cash")
+    s = position_size(price, atr, capital,
+                      risk_frac=args.risk or limits["risk_per_trade"],
+                      stop_atr_mult=limits["stop_atr_mult"],
+                      max_position_pct=limits["max_position_pct"])
+    print(f"\n{ticker} 仓位计算（ATR 法，总资产 {capital:,.0f}）")
+    print(f"  现价 {price:.2f} | ATR14 {atr:.2f}（{atr / price * 100:.1f}%）")
+    print(f"  建议股数：{s['shares']}（约束生效方：{'单笔风险' if s['binding'] == 'risk' else '单标的上限'}）")
+    print(f"  止损价：{s['stop']}（距现价 -{s['stop_dist_pct']}%）")
+    print(f"  仓位市值：{s['position_value']:,.0f}（占总资产 {s['position_pct']}%）")
+    print(f"  止损触发时亏损：{s['risk_amount']:,.0f}"
+          f"（{s['risk_amount'] / capital * 100:.2f}% 总资产）")
+    print("\n纪律：先定止损再下单；跌破止损执行离场，不移动止损换取希望。")
+    print(DISCLAIMER)
+
+
 def cmd_watchlist(args):
     from .config import load_watchlist
     from .data import get_last_quote
@@ -291,6 +375,17 @@ def main(argv: list[str] | None = None):
 
     p = sub.add_parser("loop-status", help="调研循环状态：退出判定与下一轮任务清单")
     p.set_defaults(func=cmd_loop_status)
+
+    p = sub.add_parser("portfolio", help="组合体检：权重/集中度/止损/论点触发器联动")
+    p.set_defaults(func=cmd_portfolio)
+
+    p = sub.add_parser("size", help="ATR 仓位计算：建仓股数与止损价")
+    p.add_argument("ticker")
+    p.add_argument("--capital", type=float, default=None,
+                   help="总资产（默认从 portfolio 文件推算）")
+    p.add_argument("--risk", type=float, default=None,
+                   help="单笔风险比例（默认取 portfolio limits，0.005=0.5%%）")
+    p.set_defaults(func=cmd_size)
 
     p = sub.add_parser("explain", help="指标教学详解")
     p.add_argument("indicator")

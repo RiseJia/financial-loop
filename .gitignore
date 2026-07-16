@@ -12,3 +12,5 @@ venv/
 *.log
 # 本地数据缓存
 data_cache/
+# 真实持仓（隐私）
+config/portfolio.local.yaml

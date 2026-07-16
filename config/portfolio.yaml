@@ -1,0 +1,27 @@
+# 个人组合模板（此文件是示例，会被提交到 git）
+# ⚠️ 真实持仓请复制为 config/portfolio.local.yaml（已 gitignore）再填写——
+#    finloop 会优先读取 .local 文件，避免把真实仓位推到远端仓库。
+#
+# 用法：
+#   finloop portfolio            组合体检（权重/集中度/止损/论点触发器联动）
+#   finloop size TICKER          按 ATR 仓位法计算建仓股数与止损价
+
+cash: 0 # 现金（与持仓同币种口径，通常 USD）
+
+limits: # 不填则用默认值（来源见 docs/long_term.md 与 docs/intraday.md）
+  max_position_pct: 0.20 # 单标的上限
+  max_group_pct: 0.40 # 单子链/行业上限
+  min_cash_pct: 0.05 # 现金下限
+  risk_per_trade: 0.005 # 单笔风险占总资产（finloop size 默认使用）
+  stop_atr_mult: 2.0 # 止损距离 = N×ATR
+
+positions: []
+# 示例（复制到 .local 后取消注释填写）：
+# positions:
+#   - ticker: 2449.TW          # 代码（yfinance 格式）
+#     shares: 1000             # 股数
+#     cost: 250.0              # 每股成本
+#     entry_date: 2026-07-01
+#     stop: 231.0              # 硬止损价（建议用 finloop size 的输出）
+#     node: test_equipment     # 关联 research_state 节点 → 论点触发器变色时体检会提醒
+#     note: AI测试论点确认，PEG~0.85，跟踪月营收与毛利率

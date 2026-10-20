@@ -8,232 +8,453 @@
 # question.status: open（阻塞退出）| deferred（显式搁置，不阻塞，需注明理由）
 
 meta:
-  cadence_days: 90 # 证据保鲜期 = 一个财报季
+  cadence_days: 90
   rounds:
-    - date: 2026-06-11
-      scope: AI上游全链首轮（深度调研+估值验证）
-      new_nodes: 13
-      new_tickers: 102
-      notes: 基线轮。发现 ZACROS/Arisawa/LandMark 等隐藏环节；估值侧验证完成。
-    - date: 2026-06-12
-      scope: Token→算力→数据中心需求传导链（单人轮）
-      new_nodes: 1
-      new_tickers: 0
-      notes: 锚定节点建立。核心产出：需求vs效率赛跑框架 + 七信号面板 +
-        三情景研判（报告 2026-06-12_token_to_datacenter.md）。
-    - date: 2026-06-12
-      scope: 第三、四轮——open 问题全清算（1组员轮 + 3组员轮）
-      new_nodes: 0
-      new_tickers: 0
-      notes: 9 个 open 全闭环，状态机首次可退出。深挖名单换血（SUMCO 新晋，
-        MU/LITE/TER 移除）。流程教训沉淀：一次性损益规则③、前提核验纪律。
-    - date: 2026-06-12
-      scope: 第五轮——美股物理层新节点+对冲专题+定投研究（3组员）
-      new_nodes: 0
-      new_tickers: 8
-      notes: AAON/WCC/PSIX/THR/AGX/ECL/LMB/BDC 入库；对冲专题清偿（TLT+XLV，
-        XLU因AI叙事污染除名防御）；新建 universe_dca 定投池；KYEC 估值核验
-        （干净forward~31-35x，PEG~0.85，名单首位）。
-
+  - date: 2026-06-11
+    scope: AI上游全链首轮（深度调研+估值验证）
+    new_nodes: 13
+    new_tickers: 102
+    notes: 基线轮。发现 ZACROS/Arisawa/LandMark 等隐藏环节；估值侧验证完成。
+  - date: 2026-06-12
+    scope: Token→算力→数据中心需求传导链（单人轮）
+    new_nodes: 1
+    new_tickers: 0
+    notes: 锚定节点建立。核心产出：需求vs效率赛跑框架 + 七信号面板 + 三情景研判（报告 2026-06-12_token_to_datacenter.md）。
+  - date: 2026-06-12
+    scope: 第三、四轮——open 问题全清算（1组员轮 + 3组员轮）
+    new_nodes: 0
+    new_tickers: 0
+    notes: 9 个 open 全闭环，状态机首次可退出。深挖名单换血（SUMCO 新晋， MU/LITE/TER 移除）。流程教训沉淀：一次性损益规则③、前提核验纪律。
+  - date: 2026-06-12
+    scope: 第五轮——美股物理层新节点+对冲专题+定投研究（3组员）
+    new_nodes: 0
+    new_tickers: 8
+    notes: AAON/WCC/PSIX/THR/AGX/ECL/LMB/BDC 入库；对冲专题清偿（TLT+XLV， XLU因AI叙事污染除名防御）；新建 universe_dca 定投池；KYEC 估值核验 （干净forward~31-35x，PEG~0.85，名单首位）。
+  - date: '2026-10-20'
+    scope: 第六轮——宏观象限切换复核 + 9 节点触发器全复核 + Agent→CPU 推理链检验 + 定投回测（6 组员 web 调研 + 逐主题红队核查）
+    new_nodes: 2
+    new_tickers: 0
+    notes: 宏观：Fed 9/16 加息至 3.75-4.00%、CPI 3.7%、10Y 5.14%、Brent ~$110——从「AI景气+降息幻想」切到「滞胀风险+流动性收紧」象限，新建 macro_regime
+      上位节点。链上：SK HBM4 砍单黄灯撤销（证伪）；Nittobo 提价腿 fired（量腿成立，价值捕获下移到 Ibiden/欣兴/南电）；新增 PJM/州级电力政治黄灯、Vertiv 披露质量黄灯；DRAM
+      合约价二阶导转负；2027 CoWoS/InP 供给追平为前置风险。Agent→CPU：推理链第③环（tool call 重 CPU）不成立，新建 cpu_agentic_compute 节点单独立论。工具：新增
+      finloop macro（多资产总览）与 finloop dca（定投回测）。⚠️ 状态：6 组员中 macro/ai_chain/chip_heat/agentic_cpu/nasdaq_dca 已完成；cash_hedge、逐主题红队核查与批评者阶段因用量限制暂停，待续（Workflow
+      run wf_8987a6d2-6ea 可 resume，已完成结果有缓存）。本轮触发器状态变更以组员 web 证据为准，尚未经红队核查。
 global_triggers:
-  - condition: 四大云厂 capex 指引环比走平或下修（总闸门）
-    status: ok
-    last_checked: 2026-06-11
-    note: 2026 指引 $660-725B（+77%），仍在上修
-  - condition: Token 量增速跌破效率增速（~3x/年）——悲观情景启动线
-    status: ok
-    last_checked: 2026-06-12
-    note: Google 口径 7x YoY vs 效率 ~3x，缺口仍在扩大。年度刷新点 = Google I/O
-  - condition: GPU 租金指数转跌（算力供需反转最快信号）
-    status: ok
-    last_checked: 2026-06-12
-    note: B200 $4.08/hr，年内 +48%
-  - condition: DRAM 合约价环比转负（挤出效应红利结束）
-    status: ok
-    last_checked: 2026-06-11
-    note: 2026Q1 +90% vs Q4'25
-  - condition: 终端 AI 收入对 capex 覆盖度持续恶化
-    status: warning
-    last_checked: 2026-06-11
-    note: 缺口大，靠预期支撑——结构性黄灯，长期监控
-  - condition: 周期面板 ≥3 信号同时转向（docs/chain/08）
-    status: ok
-    last_checked: 2026-06-12
-    note: 当前 1 黄（SK砍单传闻）+ 1 结构黄（覆盖度）
-
+- condition: 四大云厂 capex 指引环比走平或下修（总闸门）
+  status: ok
+  last_checked: '2026-10-20'
+  note: Q2 轮四家 2026 指引合计 $720-745B 仍上修（GOOGL $195-205B、META $130-145B、MSFT CY26 ~$175B 为会计口径非削减、AMZN ~$220B 待核）；Alphabet
+    口头 2027「显著增加」；GS 预计 2027 ~$1.2T、约 35% 举债。Q3 检查点 10/21-10/29：任一家 2026 下修或 2027 首次口径为「持平」→ warning
+- condition: Token 量增速跌破效率增速（~3x/年）——悲观情景启动线
+  status: ok
+  last_checked: '2026-10-20'
+  note: OpenRouter 周量 9/14 当周 128T → 10/5 当周 ~172T（含匿名新模型噪音）；Google 年度锚 3.2 千万亿/月（2026-05，YoY 7x）。增速在加速而非减速；下一年度锚
+    2027 I/O
+- condition: GPU 租金指数转跌（算力供需反转最快信号）
+  status: ok
+  last_checked: '2026-10-20'
+  note: B200 ~$8.0/hr（SemiAnalysis 9/25，3 个月 +79%；Ornn 10/19 $8.41）；H100 中位 $3.81（12 个月 +28%）。注意与 6 月 $4.08 基线口径不同
+- condition: DRAM 合约价环比转负（挤出效应红利结束）
+  status: ok
+  last_checked: '2026-10-20'
+  note: 4Q26 常规 DRAM 合约价 +10-15% QoQ（1Q26 +90% → 持续减速，二阶导为负）；TrendForce 1Q27 预测（约 12 月）若 ≤+5% → warning
+- condition: 终端 AI 收入对 capex 覆盖度持续恶化
+  status: warning
+  last_checked: '2026-10-20'
+  note: 缺口未缩小且融资结构恶化：Oracle FY27 capex $90-95B（FY26 capex/营收 82.6%）举债+股权 $40B；GS 估 2027 云厂 capex 35% 靠举债；CoreWeave
+    5 年 CDS 10/15 >1,000bp、Oracle CDS 282bp——信用市场已成为本轮 AI 回撤的领先指标
+- condition: 周期面板 ≥3 信号同时转向（docs/chain/08）
+  status: warning
+  last_checked: '2026-10-20'
+  note: 按面板口径已达 3 黄：融资层（AI 债发行腰斩）、宏观利率（10Y 5.1-5.3%、Fed 加息）、终端需求破坏（PC 萎缩）+ 结构黄（覆盖度）+ 政治黄（PJM/州级）；基本面 6 项（合约价/现货倒挂/库存/capex
+    方向/盈利修正/租金）0 红 1 黄（盈利修正减速）。综合判定「牛市中继」置信度 60-65%，低于 2024-08 与 2026-07 回调时；剩余概率的主路径是 2000 式「融资收缩→2027 capex 下修→盈利修正转负」而非
+    2022 式库存周期
+- condition: AI 融资层收缩（债券发行/信用利差/银行风险转移）——2000 年电信泡沫的杀伤机制是「需求没问题→融资先断」
+  status: warning
+  last_checked: '2026-10-20'
+  note: AI 相关债券发行 6 月 $113B → 9 月 $23B（FT/MS）；CoreWeave 债收益率 >15%、CDS >1,000bp；Oracle 新墨西哥 $18B 贷款承压、银行探索 SRT；Hock
+    Tan 10/12「获取资本比芯片/电力更可能成为瓶颈」。fired 条件：任一 neocloud/Oracle 级主体违约或再融资失败，或 10-11 月发行继续 <$30B/月
+- condition: 终端需求破坏（内存挤出效应的反身性：PC/手机/游戏机萎缩 → 常规 DRAM 位元需求下滑）
+  status: warning
+  last_checked: '2026-10-20'
+  note: HP 向 SEC 表示因内存涨价预计全球 PC 出货萎缩至 2027；游戏机销量 13 年新低——2018 下行周期的起点形态（当时手机/PC 先弱）。此前框架把挤出效应视为纯红利，需加入反身性路径；TrendForce
+    1Q27 合约价预测为首个验证点
 nodes:
   token_datacenter_demand:
     label: Token→数据中心需求锚（全链有效期）
-    last_verified: 2026-06-12
+    last_verified: '2026-10-20'
     evidence:
-      - claim: Google token 量 480T→3,200T/月（YoY 7x）；agentic 乘数 5-100x/任务且渗透刚起步
-        asof: 2026-06-12
-      - claim: 订单簿硬可见度——官方 $500B 至 2026 底（财报会确认）；媒体推算 $1T through 2027（单源）；Blackwell 售罄至 2027；Stargate 已落地 7GW
-        asof: 2026-06-12
-      - claim: 效率反作用力 ~3x/年（Blackwell 10x/MW、Rubin 宣称再 10x/瓦打折）；30-50% 的 2026 产能滑期到 2028（对上游=需求展期）
-        asof: 2026-06-12
-      - claim: 测量方案落地：token 三层合成（Google锚/OpenAI·MSFT校准/OpenRouter周度代理）；agentic 三复合指标——路由层 agent 流量占比已 ~70%（详见 round4 报告 A 节）
-        asof: 2026-06-12
+    - claim: Google token 量 480T→3,200T/月（YoY 7x）；agentic 乘数 5-100x/任务且渗透刚起步
+      asof: 2026-06-12
+    - claim: 订单簿硬可见度——官方 $500B 至 2026 底（财报会确认）；媒体推算 $1T through 2027（单源）；Blackwell 售罄至 2027；Stargate 已落地 7GW
+      asof: 2026-06-12
+    - claim: 效率反作用力 ~3x/年（Blackwell 10x/MW、Rubin 宣称再 10x/瓦打折）；30-50% 的 2026 产能滑期到 2028（对上游=需求展期）
+      asof: 2026-06-12
+    - claim: 测量方案落地：token 三层合成（Google锚/OpenAI·MSFT校准/OpenRouter周度代理）；agentic 三复合指标——路由层 agent 流量占比已 ~70%（详见 round4
+        报告 A 节）
+      asof: 2026-06-12
+    - claim: NVDA FQ2 FY27（8/26）：营收 $96.2B（+106%）、DC $89.0B；Q3 指引 $108B±2%，Vera Rubin 约占 Q3 DC 收入 20%；供给/产能承诺 $279B；NeoCloud/主权/企业
+        ~$40B（+25% QoQ）
+      asof: '2026-10-20'
+    - claim: Q2 轮 capex：GOOGL 2026 上调至 $195-205B 并称 2027 显著增加；META $130-145B；MSFT CY26 ~$175B（折旧 15→25 年 + 经营租赁化的会计口径，FY27
+        仍增长）；AMZN ~$220B（追踪器口径，10/29 核）；ORCL FY27 $90-95B
+      asof: '2026-10-20'
+    - claim: 需求实时信号：B200 租金 3 个月 +79%（SemiAnalysis $8.01/hr）；OpenRouter 周 token ~90T（8 月）→ 128T（9/14）→ ~172T（10/5，含
+        Space Bunny Alpha 单周 38.7T 噪音）；agent 流量占比 ~71%
+      asof: '2026-10-20'
+    - claim: ⚠️ 融资结构变化：CoreWeave CDS >1,000bp、2031 债收益率一度 16%；Oracle CDS 282bp；GS 估 2027 capex 35% 举债——「现金流自融资的超大规模云
+        vs 债务融资的 neocloud/Oracle」成为新的分层维度
+      asof: '2026-10-20'
+    - claim: 需求锚不确定性：OpenAI 10/8 告知投资人 9 月底年化收入 ~$50B（Q3 环比 +77%），低于流传的 $68B（后者含合作伙伴毛收入）；当日 NVDA -3%、ORCL -6%、CRWV
+        -8%
+      asof: '2026-10-20'
     triggers:
-      - condition: 七信号面板 ≥3 越线（报告第五章，与 docs/chain/08 联动）
-        status: ok
-        last_checked: 2026-06-12
-      - condition: PJM 类电力政治风险升级为强制立法（接入冻结/强制自建）
-        status: ok
-        last_checked: 2026-06-12
+    - condition: 七信号面板 ≥3 越线（报告第五章，与 docs/chain/08 联动）
+      status: ok
+      last_checked: '2026-10-20'
+      note: 七信号面板：需求侧三件套（租金/token/capex）全部向上；新增黄灯为电力政治与融资结构，未达 3 信号
+    - condition: PJM 类电力政治风险升级为强制立法（接入冻结/强制自建）
+      status: warning
+      last_checked: '2026-10-20'
+      note: FERC 2026-10-09 否决 PJM 大负荷接入方案主体（删 IRAS/BYONC，仅批跟踪数据库）；纽约州 6/4 通过 ≥20MW 一年暂停法案；新泽西「先限数据中心」费率法签署；VA 2026-28
+        电力税 $0.011/kWh；NC 取消 DC 电力销售税豁免。州级冻结/成本显性化已出现，PJM 主体未冻结故不判 fired
     open_questions:
-      - q: OpenRouter 增速代理与 Google 锚的校正系数（首次年度回测在 2027 I/O 后）
-        status: deferred
-        reason: 需要两个年度锚点才能回测
+    - q: OpenRouter 增速代理与 Google 锚的校正系数（首次年度回测在 2027 I/O 后）
+      status: deferred
+      reason: 需要两个年度锚点才能回测
   cowos_packaging:
     label: CoWoS/先进封装
-    last_verified: 2026-06-11
+    last_verified: '2026-10-20'
     evidence:
-      - claim: TSMC 产能 35k(24末)→75-80k(25末)→127-130k wpm(26末)，预订深度18个月，NVDA锁60%+
-        asof: 2026-06-11
-      - claim: TSMC 外包 24-27万片/年给 Amkor/SPIL；ASE 后段提价 5-20%
-        asof: 2026-06-11
+    - claim: TSMC 产能 35k(24末)→75-80k(25末)→127-130k wpm(26末)，预订深度18个月，NVDA锁60%+
+      asof: 2026-06-11
+    - claim: TSMC 外包 24-27万片/年给 Amkor/SPIL；ASE 后段提价 5-20%
+      asof: 2026-06-11
+    - claim: TSMC Q3（10/15）：营收 $46.7B（+41% YoY）、GM 66.4%、Q4 指引 $52.3-54.3B；2026 capex 维持 $60-64B，2026-28 capex「显著更高」；管理层称
+        AI 加速器/网络/先进封装需求仍高于产能、缺口 still quite big；CoWoS 预订至 2027 底（媒体口径 ≈14 个月）
+      asof: '2026-10-20'
+    - claim: 前置风险：GS 估 CoWoS 产能 2026 127.5 万片 → 2027 273 万片，而 2027 需求最乐观估算 250-270 万片；TrendForce 预计缺口 2026 底收至 ~10%、2027
+        进一步改善——2.5D 封装 2027H2 可能首次进入平衡区
+      asof: '2026-10-20'
+    - claim: ASML Q3（10/14）：净销售 €11.7B、Q4 指引 €14.2-15.2B、2026 全年 €44-45B；称 2027/2028 规划供给仍无法完全满足需求，研究 2028 产能 +30%
+        之外再扩；中国占比 42%→23%；已不再披露季度订单
+      asof: '2026-10-20'
     triggers:
-      - condition: CoWoS 预订深度缩短至 <12 个月
-        status: ok
-        last_checked: 2026-06-11
-      - condition: 2027 新产能落地后出现砍单
-        status: ok
-        last_checked: 2026-06-11
+    - condition: CoWoS 预订深度缩短至 <12 个月
+      status: ok
+      last_checked: '2026-10-20'
+      note: 官方不披露预订深度；以「预订至 2027 底 ≈14 个月」为代理值，仍 ≥12 个月阈值
+    - condition: 2027 新产能落地后出现砍单
+      status: ok
+      last_checked: '2026-10-20'
+      note: 2027 供给 273 万片 vs 需求 250-270 万片：前置观察 1H27 ASE/Amkor 后段报价是否首次让步（OSAT/载板定价权红利最迟 2027H2 见顶）
     open_questions: []
-
   abf_substrate:
     label: ABF载板与材料链
-    last_verified: 2026-06-12
+    last_verified: '2026-10-20'
     evidence:
-      - claim: Ajinomoto 2026Q3 提价30%；2028 缺口预估42%；玻璃基板=hybrid架构利好而非威胁
-        asof: 2026-06-11
-      - claim: Nittobo FY27/3 指引：营收+15.9%、营业利益+24.9%、净利-59.3%（FY26/3 含卖楼特别利益¥341亿）；管理层称"极端提价难"且"T-glass 短期无增产"；干净口径 forward PE≈39x
-        asof: 2026-06-12
-      - claim: Ibiden ¥5000亿capex(26-28)；Unimicron NVDA载板35%/ASIC 50%+
-        asof: 2026-06-11
+    - claim: Ajinomoto 2026Q3 提价30%；2028 缺口预估42%；玻璃基板=hybrid架构利好而非威胁
+      asof: 2026-06-11
+    - claim: Nittobo FY27/3 指引：营收+15.9%、营业利益+24.9%、净利-59.3%（FY26/3 含卖楼特别利益¥341亿）；管理层称"极端提价难"且"T-glass 短期无增产"；干净口径
+        forward PE≈39x
+      asof: 2026-06-12
+    - claim: Ibiden ¥5000亿capex(26-28)；Unimicron NVDA载板35%/ASIC 50%+
+      asof: 2026-06-11
+    - claim: Nittobo FY27/3 Q1（8/6）：营收 ¥340 亿（+21%）、净利 ¥57 亿（+84%）、全年净利上调 ¥30 亿；管理层：计划内 T-glass 提价已基本完成、暂无进一步提价（能源成本高企可能重审）；¥800
+        亿 capex，福岛新栋 2027Q1 投产、台湾产能 2028/3 前翻倍——价格腿证伪、量腿成立
+      asof: '2026-10-20'
+    - claim: 价值捕获下移到载板厂：Ibiden FY27 营业利润指引 ¥900 亿→¥1,270 亿（2.0x），AI/服务器高端基板占 63%；欣兴 9 月营收 +64.7% YoY 连六月新高、2027
+        ABF 产能 +30-40%、capex NT$340 亿；南电 1.6T 交换器载板 ASP 为 800G 两倍以上；景硕 9 月 +44.5%
+      asof: '2026-10-20'
+    - claim: ⚠️ 欣兴「洗产地」案（8/28 搜索、8/31 跌停）：公司称涉案为 PCB 非 ABF 载板，调查未结案——治理/法律风险，非需求信号
+      asof: '2026-10-20'
+    - claim: Ajinomoto ABF 膜提价 30%（Digitimes 5 月，Q3 生效）与公司「扩产不提价、可满足至 2030」口径冲突，实际成交价未核
+      asof: '2026-10-20'
     triggers:
-      - condition: Nittobo 提价落地度（管理层已亲口降温"极端提价难"——观察实际成交价 vs 口径）
-        status: warning
-        last_checked: 2026-06-12
-        note: 调研假设的"4月再提20-30%"未获管理层背书，叙事降温但价格仍上行
-      - condition: 台厂载板月营收增速连续2月转负
-        status: ok
-        last_checked: 2026-06-11
+    - condition: Nittobo 提价落地度（管理层已亲口降温"极端提价难"——观察实际成交价 vs 口径）
+      status: fired
+      last_checked: '2026-10-20'
+      note: 2026-08-06 管理层亲口关闭进一步提价窗口；6 月调研假设的「4 月再提 20-30%」被证伪。Nittobo ~39x 干净 forward PE 所隐含的「持续提价」剧本失去支撑，论点切换为「量
+        + 能源成本转嫁」，深挖优先级下调；Ibiden/欣兴/南电上调
+    - condition: 台厂载板月营收增速连续2月转负
+      status: ok
+      last_checked: '2026-10-20'
+      note: 台厂 9 月营收全部大幅正增长（欣兴 +64.7%、南电 +58%、景硕 +44.5%）
+    - condition: T-glass 新产能（福岛 2027Q1、台湾 2028/3 翻倍）投产后成交价是否回落 / Nittobo 是否因能源成本重启提价
+      status: ok
+      last_checked: '2026-10-20'
+      note: 替代原提价触发器：观察 2027Q1 后 T-glass 稀缺溢价是否消退
     open_questions:
-      - q: ZACROS/Arisawa 财务数据可得性与流动性（零覆盖环节尽调）
-        status: deferred
-        reason: 先完成 Tier 1 核验，下轮处理
-
+    - q: ZACROS/Arisawa 财务数据可得性与流动性（零覆盖环节尽调）
+      status: deferred
+      reason: 先完成 Tier 1 核验，下轮处理
   hbm_memory:
     label: HBM与存储
-    last_verified: 2026-06-11
+    last_verified: '2026-10-20'
     evidence:
-      - claim: 三强全部通过 NVDA HBM4 认证；SK 拿 Rubin 配额 60-70%
-        asof: 2026-06-11
-      - claim: 挤出效应：服务器DRAM Q4'25 +43-48%，2026Q1 整体 +90%；capex 转制程升级供给受限
-        asof: 2026-06-11
-      - claim: MU 正常化 EPS 中枢 $14-16 → 现价约 62x 正常化盈利、P/B ~14x（历史周期顶的 5 倍）；隐含剧本="峰值即新常态"——估值侧极端，移出深挖名单
-        asof: 2026-06-12
+    - claim: 三强全部通过 NVDA HBM4 认证；SK 拿 Rubin 配额 60-70%
+      asof: 2026-06-11
+    - claim: 挤出效应：服务器DRAM Q4'25 +43-48%，2026Q1 整体 +90%；capex 转制程升级供给受限
+      asof: 2026-06-11
+    - claim: MU 正常化 EPS 中枢 $14-16 → 现价约 62x 正常化盈利、P/B ~14x（历史周期顶的 5 倍）；隐含剧本="峰值即新常态"——估值侧极端，移出深挖名单
+      asof: 2026-06-12
+    - claim: Micron FQ4 FY26（9/30）：营收 $54.2B、FQ1 指引 $60-63B、GM ~86%；CY27 HBM 位元绝大部分已签约且价格显著上涨；FY27 H1 capex ~$25B；行业
+        DRAM 位元 2027/28 增速 low-20%、「没有供需回到平衡的可见度」
+      asof: '2026-10-20'
+    - claim: Samsung Q3 初步营业利润 ~₩107.4 万亿（~9x YoY）；12 层 HBM4E 通过 NVIDIA 认证（KED，匿名信源）；HBM4 要价 ≥$4.50/Gb（HBM3E ~$1.50）；TrendForce
+        预计 2027 HBM 均价 +121%
+      asof: '2026-10-20'
+    - claim: SK hynix：HBM4 Q2 起量产出货、Q3 为首个完整收入季（Rubin）；Q3 财报 10/29，共识营业利润 ~₩77 万亿；已向 SEC 提交 F-1（美股上市）
+      asof: '2026-10-20'
+    - claim: 「SK 砍 2026 HBM4 20-30%」后续事实链：NVDA 否认 Rubin 延迟 → 6 月 SK 追加 ₩442 亿 TC bonder → 8 月 NVDA 指引 Q3 Rubin 占
+        DC 收入 ~20%——传闻未获官方证实；即便有配额改分（HBM4→HBM3E/服务器 DRAM）亦属合约价 +90%/季环境下的利润最大化调整
+      asof: '2026-10-20'
+    - claim: TrendForce 4Q26：常规 DRAM 合约价 +10-15% QoQ、含 HBM +15-20%、NAND +15-20%——仍正但明显减速
+      asof: '2026-10-20'
+    - claim: 估值与供给种子：MU $905 较 52 周高 $1,255 回撤 -28%（6 月「62x 正常化盈利/P/B 14x」基准需重算）；SK hynix 规划 DRAM 月产能从 ~55 万片扩至
+        2030-31 年 ~100 万片——未来供给过剩的种子，设为 2028 监控项；CXMT 全球 DRAM 份额 9 月 ~10%
+      asof: '2026-10-20'
     triggers:
-      - condition: SK 砍 2026 HBM4 出货 20-30%（Rubin 延迟）传闻坐实
-        status: warning
-        last_checked: 2026-06-11
-        note: 黄色信号已亮，待 SK 季报确认
-      - condition: 三强任一在财报中放弃供给纪律措辞
-        status: ok
-        last_checked: 2026-06-11
+    - condition: SK 砍 2026 HBM4 出货 20-30%（Rubin 延迟）传闻坐实
+      status: ok
+      last_checked: '2026-10-20'
+      note: 黄灯撤销：传闻未获官方证实，Rubin 已进 NVDA Q3 指引、SK/Samsung/MU 三季度同创纪录。10/29 SK 财报核对 HBM4 出货 vs 原计划后正式关闭
+    - condition: 三强任一放弃供给纪律（2028 位元供给增速 >25% 或 2027/28 capex 指引再上修 >30%）
+      status: ok
+      last_checked: '2026-10-20'
+      note: 进入观察期：Micron 被问「FY27 capex >$50B 是否新常态」、Samsung/SK 均加码——若三强任一给出 2028 位元供给增速 >25% 或 2027/28 capex 指引再上修
+        >30% → warning
     open_questions: []
-
   silicon_wafer:
     label: 硅片与晶圆材料
-    last_verified: 2026-06-11
+    last_verified: '2026-10-20'
     evidence:
-      - claim: 2026Q1 出货 +13.1% YoY（数季最强）；LTA 长协提价中；先进片紧成熟片松
-        asof: 2026-06-11
-      - claim: 前提纠偏：SUMCO FY25 净亏 ¥117亿（非¥1175亿），营业利润仍为正；亏损=新厂折旧+200mm退出特损，营业转盈预期 2026H2——左侧拐点型，新晋深挖名单
-        asof: 2026-06-12
+    - claim: 2026Q1 出货 +13.1% YoY（数季最强）；LTA 长协提价中；先进片紧成熟片松
+      asof: 2026-06-11
+    - claim: 前提纠偏：SUMCO FY25 净亏 ¥117亿（非¥1175亿），营业利润仍为正；亏损=新厂折旧+200mm退出特损，营业转盈预期 2026H2——左侧拐点型，新晋深挖名单
+      asof: 2026-06-12
+    - claim: SEMI 2026Q2 硅片出货 3,573 MSI：+7.4% YoY（Q1 +13.1%，高基期）、+9.1% QoQ（数季最强环比）
+      asof: '2026-10-20'
+    - claim: SUMCO Q2（8/6）：销售 ¥1,136 亿超指引；营业小亏（-¥11 亿 vs -¥63 亿两源冲突）；300mm 出货创纪录、「非常接近满载」、Q4 满载；Q3 营业利润预期近盈亏平衡；社长：5-10%
+        提价远不足以覆盖成本、扩产取决于显著涨价——拐点按计划推进但价格杠杆弱于预期
+      asof: '2026-10-20'
+    - claim: Shin-Etsu FY27/3 Q1：电子材料靠增量 + 价格修订增长；日经：客户因供应链担忧增加硅片库存；UBS：需 40% 涨价才能激励新产能
+      asof: '2026-10-20'
     triggers:
-      - condition: SEMI 季度出货增速转负 / LTA 重签价格下行
-        status: ok
-        last_checked: 2026-06-11
-      - condition: SUMCO 拐点跟踪：LTA 重签提价幅度 / 先进片稼动率(90%→满载) / 成熟片库存月数拐头
-        status: ok
-        last_checked: 2026-06-12
+    - condition: SEMI 季度出货增速转负 / LTA 重签价格下行
+      status: ok
+      last_checked: '2026-10-20'
+      note: Q2 同比减速为基期效应，环比加速；LTA 重签价格仍上行
+    - condition: SUMCO 拐点跟踪：LTA 重签提价幅度 / 先进片稼动率(90%→满载) / 成熟片库存月数拐头
+      status: ok
+      last_checked: '2026-10-20'
+      note: 下一检查点：SUMCO Q3（约 11 月）营业利润是否 ≥0；12 吋库存天数不可得，改用 SEMI 季度出货 QoQ + SUMCO 稼动率代理
     open_questions: []
-
   optical_interconnect:
     label: 光互联
-    last_verified: 2026-06-11
+    last_verified: '2026-10-20'
     evidence:
-      - claim: NVDA $40亿入股 LITE/COHR 锁 EML；LITE 200G/lane 唯一量产(50-60%)；COHR InP 售罄至2027
-        asof: 2026-06-11
-      - claim: 1.6T 出货 2026 预测 5M~30M（口径分歧6倍，NVDA占6成需求）
-        asof: 2026-06-11
-      - claim: CPO 交换机 2026H1 上量；对模块厂威胁/对激光器中性/对FAU增量
-        asof: 2026-06-11
-      - claim: LITE 52x = Nomura 20M 剧本已完全定价；约束=行业 EML 产能 20M颗/年 vs 20M模块需160M颗（需5倍扩产）。LandMark +648% 属实（低基期+真实放量），forward 110-135x 等回调
-        asof: 2026-06-12
+    - claim: NVDA $40亿入股 LITE/COHR 锁 EML；LITE 200G/lane 唯一量产(50-60%)；COHR InP 售罄至2027
+      asof: 2026-06-11
+    - claim: 1.6T 出货 2026 预测 5M~30M（口径分歧6倍，NVDA占6成需求）
+      asof: 2026-06-11
+    - claim: CPO 交换机 2026H1 上量；对模块厂威胁/对激光器中性/对FAU增量
+      asof: 2026-06-11
+    - claim: LITE 52x = Nomura 20M 剧本已完全定价；约束=行业 EML 产能 20M颗/年 vs 20M模块需160M颗（需5倍扩产）。LandMark +648% 属实（低基期+真实放量），forward
+        110-135x 等回调
+      asof: 2026-06-12
+    - claim: Lumentum FQ4 FY26：营收 $1.01B（+109%）、FQ1 指引 $1.225-1.275B；1.6T 早期量产；高功率激光器供给仍是约束；CPO 主放量 2H26
+      asof: '2026-10-20'
+    - claim: Coherent FQ4 FY26：DC&C $1.62B（+58.6%）；「InP 产能仍是首要约束」，内部 InP 本季末同比翻倍、2027 底再翻倍；1.6T 放量提前；目标 FY27 末单季
+        >$3B
+      asof: '2026-10-20'
+    - claim: Innolight 2026H1：营收 RMB 418 亿（+182.5%）、销量 1,899 万只；公司估 2026 全球 1.6T 需求 ~2,500 万只；GS 9/7 将 2027 1.6T
+        出货预测 4,200 万 → 7,140 万只——触发器(1) 的 5M 下沿已几乎不可能
+      asof: '2026-10-20'
+    - claim: AXT Q2：营收 $47.6M（+165%）、InP 创纪录、backlog >$100M；季度 InP 产能 2026 底 $60M → 2027 底 $130M；Q3 财报 10/29
+      asof: '2026-10-20'
+    - claim: CPO：NVIDIA/Broadcom CPO 交换机量产爬坡，光引擎良率与先进封装产能为瓶颈；2026 量级约 1-1.5 万台——对模块厂的替代威胁推至 2027+
+      asof: '2026-10-20'
     triggers:
-      - condition: 1.6T 实际出货落在预测区间下沿（≈5M）
-        status: ok
-        last_checked: 2026-06-11
-      - condition: EML/InP 交期显著缓解（COHR book-to-bill 跌回 1.x）
-        status: ok
-        last_checked: 2026-06-11
-      - condition: EML 行业产能扩张进度（20M→160M 颗需求缺口的弥合速度）
-        status: ok
-        last_checked: 2026-06-12
+    - condition: 1.6T 实际出货落在预测区间下沿（≈5M）
+      status: ok
+      last_checked: '2026-10-20'
+      note: 结案时间 2027-02（LightCounting/Innolight 年报给出 2026 实际出货）
+    - condition: EML/InP 交期显著缓解（COHR book-to-bill 跌回 1.x）
+      status: ok
+      last_checked: '2026-10-20'
+      note: COHR/LITE 均称供给仍是约束；但 2027 InP 供给 4x（COHR 内部 + AXT 3.7x）——2027 下半年为该触发器可能转 warning 的窗口
+    - condition: EML 行业产能扩张进度（20M→160M 颗需求缺口的弥合速度）
+      status: ok
+      last_checked: '2026-10-20'
+      note: 弥合速度：COHR 内部 InP 到 2027 底累计 4x、AXT 季度产能 3.7x；缺口在 2027 显著缓解
     open_questions: []
-
   test_equipment:
     label: 测试设备
-    last_verified: 2026-06-12
+    last_verified: '2026-10-20'
     evidence:
-      - claim: TER/Advantest 折价裂口已被市场纠正（TER Q1'26 +87%、70%收入AI相关、Magnum EPIC 拿 HBM 堆叠测试>50%；fwd PE ~52.9x 与 Advantest 持平）——错位窗口关闭
-        asof: 2026-06-12
-      - claim: KYEC 2026Q1 剔除苏州处分基期后净利+85%、毛利率+6.25pp、capex 上修至 NT$500亿——AI 测试论点强确认，深挖优先级上调
-        asof: 2026-06-12
+    - claim: TER/Advantest 折价裂口已被市场纠正（TER Q1'26 +87%、70%收入AI相关、Magnum EPIC 拿 HBM 堆叠测试>50%；fwd PE ~52.9x 与 Advantest
+        持平）——错位窗口关闭
+      asof: 2026-06-12
+    - claim: KYEC 2026Q1 剔除苏州处分基期后净利+85%、毛利率+6.25pp、capex 上修至 NT$500亿——AI 测试论点强确认，深挖优先级上调
+      asof: 2026-06-12
+    - claim: Advantest FY26 Q1：销售 ¥3,675 亿（+39%）；全年预测 ¥9,995 亿 → ¥12,435 亿；CY26 测试机 TAM 上调 19% 至 $13-14.5B；提示先进封装产能约束与存储成本对毛利的压力
+      asof: '2026-10-20'
+    - claim: Teradyne Q2：营收 $1.33B（+104%）、存储测试 $212M 创纪录、存储 B2B >2；Q3 指引中值 -6% QoQ、GM 58-59%——管理层预警 AI 订单「块状/前高后低」
+      asof: '2026-10-20'
+    - claim: KYEC 9 月营收 NT$40.7 亿（+24.5% YoY、环比持平）、Q3 +9% QoQ、capex 上修至 NT$500 亿；Rubin 测试首批递延至 Q3 末、放量 Q4，量产后 30-35
+        万颗/月、1Q27 有望破百万颗；AI 营收占比 >70%
+      asof: '2026-10-20'
     triggers:
-      - condition: AI 芯片测试时长增长论点失效（测试强度/SLT 渗透回落）
-        status: ok
-        last_checked: 2026-06-12
+    - condition: AI 芯片测试时长增长论点失效（测试强度/SLT 渗透回落）
+      status: ok
+      last_checked: '2026-10-20'
+      note: 进入「块状增长」期：环比波动 ≠ 测试强度回落。若 KYEC 月营收连续 2 月 YoY <15% 或 TER 存储 B2B <1 → warning
     open_questions: []
-
   power_cooling:
     label: 电源与散热
-    last_verified: 2026-06-11
+    last_verified: '2026-10-20'
     evidence:
-      - claim: VRT backlog $15B(+109%)；Rubin 冷却液流量×2 全无风扇；台达 AI 电源 >60%
-        asof: 2026-06-11
-      - claim: MPWR 在 Blackwell 世代份额传闻流向 Infineon(60-70%)/Renesas
-        asof: 2026-06-11
+    - claim: VRT backlog $15B(+109%)；Rubin 冷却液流量×2 全无风扇；台达 AI 电源 >60%（⚠️ backlog $15B(+109%) 为 Q4'25 数据，已过期；此后公司连续三季未披露订单/B2B/backlog）
+      asof: 2026-06-11
+    - claim: MPWR 在 Blackwell 世代份额传闻流向 Infineon(60-70%)/Renesas
+      asof: 2026-06-11
+    - claim: Vertiv Q2：净销售 $3.27B（+24%）、organic +17.8% 首次低于自身指引下限（20-24%），归因供应链拥堵；FY26 指引上调至 ~$14B；递延收入 $3.63B 为主要量化需求指标；Q3
+        财报 10/28
+      asof: '2026-10-20'
+    - claim: Eaton Q2：organic +14%、数据中心订单 +85%、美国 DC backlog 307 GW、电气 backlog +43%；并购 Boyd Thermal 进入液冷
+      asof: '2026-10-20'
+    - claim: Rubin 电源：NVIDIA 公布 800VDC 合作伙伴 14 家（Infineon/MPS/Renesas 等），800V 大规模部署在 2027 Rubin Ultra；MPWR vs Infineon/Renesas
+        份额仍无任何量化披露
+      asof: '2026-10-20'
     triggers:
-      - condition: Rubin 部件定点结果公布——现有份额假设重检
-        status: ok
-        last_checked: 2026-06-11
+    - condition: Rubin 部件定点结果公布——现有份额假设重检
+      status: ok
+      last_checked: '2026-10-20'
+      note: 「待公布」状态已持续四个月；MPWR Q3（10 月下旬）/Infineon FQ4（11 月）电话会为下一检查点
+    - condition: Vertiv 连续不披露订单/B2B/backlog 且 organic 低于自身指引
+      status: warning
+      last_checked: '2026-10-20'
+      note: Q2 organic 17.8% vs 指引 20-24%；全线上调指引同时收窄披露 = 「需求好但执行/供应链开始卡」。10/28 Q3 若恢复披露或 organic 回到指引内则撤销
     open_questions: []
-
   datacenter_power:
     label: 数据中心电力
-    last_verified: 2026-06-12
+    last_verified: '2026-10-20'
     evidence:
-      - claim: 大型变压器交期 128 周、GSU 144 周；美国 2026 规划 DC 一半可能延迟
-        asof: 2026-06-11
-      - claim: ⚠️ 防御失效：电力IPP(CEG 26x/VST 18x)已被AI叙事定价=AI beta非防御（2001-02商电崩盘镜像）；'第二引擎韧性'只适用于设备商不适用于IPP
-        asof: 2026-06-12
-      - claim: 新节点入库：WCC(电气分销DC占24%)、PSIX(备用发电部件)、AGX(DC燃气EPC backlog $29亿)
-        asof: 2026-06-12
+    - claim: 大型变压器交期 128 周、GSU 144 周；美国 2026 规划 DC 一半可能延迟（⚠️ 128/144 周为 WoodMac 2025Q2 调查，已过保鲜期；GSU >160 周为二手转述）
+      asof: 2026-06-11
+    - claim: ⚠️ 防御失效：电力IPP(CEG 26x/VST 18x)已被AI叙事定价=AI beta非防御（2001-02商电崩盘镜像）；'第二引擎韧性'只适用于设备商不适用于IPP
+      asof: 2026-06-12
+    - claim: 新节点入库：WCC(电气分销DC占24%)、PSIX(备用发电部件)、AGX(DC燃气EPC backlog $29亿)
+      asof: 2026-06-12
+    - claim: GE Vernova Q2：总 backlog $176B；燃机设备 backlog+slot 116 GW、已接受 2031 年交付预订；Siemens Energy FQ3 燃机确定 backlog
+        69 GW、全年趋向 100 GW；WoodMac：燃机价格较低点 +195%、交期 ~6 年——交期在延长而非缩短
+      asof: '2026-10-20'
+    - claim: FERC 10/9 否决 PJM 大负荷接入方案主体 → 容量价格维持高位更久（利好存量发电商）；州级立法（NY 暂停、NJ 费率类、VA 电力税、NC 取消免税）把数据中心电力成本显性化——对设备商中性、对
+        IPP/运营商边际负面，与 6 月「IPP 非防御」结论一致
+      asof: '2026-10-20'
     triggers:
-      - condition: Wood Mackenzie 季调显示交期开始环比缩短（定价权见顶）
-        status: ok
-        last_checked: 2026-06-11
+    - condition: 交期开始环比缩短（定价权见顶）——数据源：WoodMac 新一期调查或 Hitachi Energy/Eaton/GEV 电网业务交期口径
+      status: ok
+      last_checked: '2026-10-20'
+      note: 交期延长中；变压器数据源需更换为 WoodMac 新一期或 Hitachi Energy/Eaton/GEV 电网业务口径
     open_questions: []
-
+  cpu_agentic_compute:
+    label: Agent 工作负载与 CPU（AMD/Intel 论点单独立论）
+    last_verified: '2026-10-20'
+    evidence:
+    - claim: 推理链逐环检验（docs/chain/09）：①agent 火热 成立；②本地部署为下一步 部分成立（隐私/离线/高频小任务）；③tool call 需要很多 CPU 不成立（调用本身微秒级，重的是工具内容且多为
+        IO 等待）；④因此买 AMD/Intel 因果链断裂
+      asof: '2026-10-20'
+    - claim: 本地推理瓶颈 = 内存带宽/容量而非 CPU 核数（decode memory-bound：8B@4bit ≈4.5GB/token；DDR5 双通道 ~90GB/s → ~10-15 tok/s；M4
+        Max 546GB/s；4090 1TB/s）。受益顺序：内存 > 平台 SoC（AI PC 换机）> 通用云实例（AMD 份额）> 「CPU 因 tool call」
+      asof: '2026-10-20'
+    - claim: 数据中心 host CPU 配比：DGX H100/HGX B200 每 8 GPU 配 2 颗 x86（0.25/GPU）；GB200 NVL72 每 72 GPU 配 36 颗 Grace（ARM，x86
+        归零）；agent 沙箱 vCPU 成本占任务成本 ~1-5%（vCPU $0.03-0.05/h vs H100 $2-3/h）
+      asof: '2026-10-20'
+    - claim: 估值（yfinance 2026-10-19）：AMD $538、1 年 +131%、距 52 周高 -18%、fwd PE 34、trailing 137、PEG 0.53、营收增速 +50%（GPU
+        驱动）；INTC $92、1 年 +149%、距高 -35%、fwd PE 44、PEG 1.36、营收 +25%——市场已为「AI 带动 CPU」付过钱
+      asof: '2026-10-19'
+    triggers:
+    - condition: Mercury Research 服务器 CPU 份额：AMD 年增 <2pp（份额故事停滞）
+      status: ok
+      last_checked: '2026-10-20'
+      note: 待 Q3 数据（11 月）
+    - condition: NVIDIA 机柜出货中 NVL（Grace）占比 >50%（x86 host 需求结构性下行）
+      status: ok
+      last_checked: '2026-10-20'
+      note: GB200/GB300 NVL 爬坡中；HGX 仍占大头，待 NVDA 11/17 口径
+    - condition: AI PC：ASP 与 ≥32GB 内存配置占比（同时是 DRAM 节点触发器）
+      status: ok
+      last_checked: '2026-10-20'
+      note: Windows 10 停服换机周期；待 IDC/Gartner Q3 数据
+    - condition: AMD 数据中心收入中 GPU vs CPU 拆分方向（CPU 占比若继续下降，则 AMD 不是 CPU 股）
+      status: ok
+      last_checked: '2026-10-20'
+      note: AMD Q3 财报 11/3
+    open_questions:
+    - q: AMD/Intel 最新季度管理层关于「agentic AI 拉动 CPU 需求」的原话与量化口径（Q3 财报 10/29 INTC、11/3 AMD）
+      status: deferred
+      reason: 事件未发生，财报后核
+  macro_regime:
+    label: 宏观象限（全链上位约束）
+    last_verified: '2026-10-20'
+    evidence:
+    - claim: Fed 9/16 加息 25bp 至 3.75-4.00%（2023 年来首次，12-0），点阵图 2026 末 4.1% 暗示再加一次；9 月 CPI 同比 3.7%（核心 2.6%）、8 月 PCE
+        3.4%；9 月非农 +29K、失业率 4.2%；GDPNow Q3 3.6%——「名义强、实际弱、通胀再加速」
+      asof: '2026-10-19'
+    - claim: 利率：10Y 5.14%（10/7 盘中 5.31% 为 2002 年来最高，YTD +97bp）、2Y 4.77%、3M T-bill 4.27%（高于联邦基金上限）、VMFXX 3.82%/SGOV
+        3.74%——现金实际收益 ≈0 至 +0.5%
+      asof: '2026-10-19'
+    - claim: 油价是单一最大变量：Brent ~$110（YTD +77%）、WTI ~$100（YTD +75%），霍尔木兹油轮遇袭/IRGC 宣称关闭海峡/胡塞袭沙特；OPEC+ 10/4 维持目标且实际产出低于目标（已无实质调控力）；能源
+        XLE YTD +55%、公用事业 Q3 -12%
+      asof: '2026-10-20'
+    - claim: 风险资产：S&P 500 距 10/6 纪录高点 -1.6%（YTD +13%）、QQQ -5.8%、SOX 距 6/22 高点 -23%（8 连跌）、IWM 3 月 -8%；板块：1 月 XLP/XLV
+        跑赢 SPY +4.7pp；SMH/QQQ 比值 3 月 -7.4%；VIX 18.9、contango 第 133 日；HYG/IEF 1 月 -1.3%——finloop macro 风险偏好读数 mixed(+1)
+      asof: '2026-10-19'
+    - claim: 黄金 $4,135（距 1/28 峰值 $5,589 -26%，YTD -5%）：实际利率压制 vs 央行 Q2 创纪录购金 289t + 9 月 ETF 逆势流入 70t 的拉锯；白银 YTD -19%；BTC
+        $81K（YTD -7%，与高 beta 科技同向）
+      asof: '2026-10-19'
+    - claim: AI 信用压力：CoreWeave 5 年 CDS >1,000bp、Oracle 282bp、HY 利差 ~316bp、CCC ~1,267bp——半导体回撤发生在 TSMC 上调指引的背景下，是估值/融资成本驱动而非终端需求崩塌
+      asof: '2026-10-15'
+    triggers:
+    - condition: Brent >$120 或霍尔木兹实质关闭（滞胀路径 B）
+      status: ok
+      last_checked: '2026-10-20'
+      note: Trump 称中期选举（11/3）后达成协议→路径 A（油价回落/Fed 暂停）；FedWatch 10/28 不加息 86%
+    - condition: FOMC 12/8-9 再加息 25bp 至 4.00-4.25%
+      status: ok
+      last_checked: '2026-10-20'
+      note: 点阵图暗示再加一次；10/28 声明措辞与 Warsh 发布会为前哨
+    - condition: VIX/VIX3M >1.0（backwardation）且 HY 利差 >400bp（系统性压力）
+      status: ok
+      last_checked: '2026-10-20'
+      note: 10/15 VIX/VIX3M 0.89、HY 316bp；10/16 VIX 盘中 22.3 未改变结构
+    - condition: 10Y >5.5%（长久期与成长估值的第二道门槛）
+      status: ok
+      last_checked: '2026-10-20'
+      note: 10/7 盘中 5.31% 为本轮高点
+    - condition: 四大云厂 Q3 财报 2027 capex 首次口径为「持平/放缓」（与 global_triggers[0] 联动）
+      status: ok
+      last_checked: '2026-10-20'
+      note: META 10/21、MSFT/GOOGL 10/28、AMZN 10/29
+    open_questions:
+    - q: 10Y 升至 5.3% 中通胀预期 vs 期限溢价/财政/海外需求的分解（决定长久期是否已具配置价值）
+      status: deferred
+      reason: 需 FRED 接入（盈亏平衡通胀率/实际收益率序列），列入 frontier
+    - q: 能源 CPI 是否二次传导至核心服务与工资（8 月实际时薪已转负）
+      status: deferred
+      reason: 等 10/29 PCE 与 11/10 CPI
 # 下轮探索边界（饱和度判断：上轮已挖角落不重复，资源投向这里）
 frontier:
-  - EUV 光刻胶链再往上（树脂单体/光酸发生剂供应商）
-  - HBM 底部填充/NCF 膜材料（Resonac/Namics 之下一层）
-  - 日本 J-Quants 接入后的日股小盘材料商盘点
-  - DCA 池的估值分位监控自动化（CAPE/forward PE 季度刷新进日报）
-  - 机房消防与物理安全的纯标的再筛（APG 敞口量化待披露）
+- EUV 光刻胶链再往上（树脂单体/光酸发生剂供应商）
+- HBM 底部填充/NCF 膜材料（Resonac/Namics 之下一层）
+- 日本 J-Quants 接入后的日股小盘材料商盘点
+- DCA 池的估值分位监控自动化（CAPE/forward PE 季度刷新进日报）
+- 机房消防与物理安全的纯标的再筛（APG 敞口量化待披露）
+- FRED 接入：T-bill/实际收益率/盈亏平衡通胀/HY OAS 序列（macro 命令与 dca 的现金利率序列都需要）
+- SK hynix 美股 F-1 上市对 HBM 敞口流动性与估值的影响
+- CPO 光引擎良率/先进封装产能瓶颈的受益环节（FAU/光引擎测试）
+- 州级大负荷费率法对 DC 运营商成本模型的量化（NJ/VA/NY）
+- 按资本开支资金来源（经营现金流 vs 债务/租赁）给 AI 产业链公司分层，CDS 进监控面板
+- 基本面数据第二来源（yfinance .info 单点故障，screen 在 429 时不可用）

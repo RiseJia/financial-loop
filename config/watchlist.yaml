@@ -20,6 +20,7 @@ benchmarks:
   QQQ: 纳斯达克100
   DIA: 道琼斯
   IWM: 罗素2000
+  SMH: 半导体ETF   # 2026-10 加入：日报可直接看半导体 vs 大盘的相对收益
 
 sectors:
   XLK: 科技

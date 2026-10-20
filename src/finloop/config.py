@@ -23,6 +23,11 @@ def repo_root() -> Path:
     return Path.cwd()
 
 
+def config_dir() -> Path:
+    """config/ 目录（watchlist/universe/macro/research_state 等配置所在）。"""
+    return repo_root() / "config"
+
+
 def load_watchlist(path: str | Path | None = None) -> dict:
     """加载自选股配置；文件缺失时回退到内置默认值。"""
     if path is None:

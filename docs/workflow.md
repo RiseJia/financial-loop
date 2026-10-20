@@ -106,7 +106,7 @@
 |---|---|
 | 调研 | `finloop loop-status`（退出判定+任务清单，见 [research_loop.md](research_loop.md)）+ agent 调研 + `finloop report`（每日监控） |
 | 筛选 | `finloop screen --tier upstream` / `finloop analyze X` |
-| 策略 | `finloop signals X` / `finloop intraday X` |
+| 策略 | `finloop macro`（多资产水位/相对强弱/风险偏好，见 [macro.md](macro.md)）/ `finloop signals X` / `finloop intraday X` |
 | 验证 | `finloop quality X` / `finloop backtest X` / `finloop eventstudy X` / `finloop research` |
 | **风险管理** | `finloop portfolio`（体检）/ `finloop size X`（ATR 仓位）——见 [portfolio.md](portfolio.md) |
 | 数据 | （自动）`data_cache/` + `reports/research/data/` 快照存档 |

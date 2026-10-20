@@ -8,6 +8,7 @@
   筛选与分析
     finloop screen --tier X         产业链需求vs估值横截面打分
     finloop analyze TICKER          个股完整分析报告
+    finloop macro                   多资产总览（股指/利率/美元/黄金/原油/加密+相对强弱+风险偏好）
     finloop watchlist               自选股行情快照
   策略与信号
     finloop signals TICKER          拐点与动量切换信号
@@ -20,6 +21,7 @@
     finloop backtest TICKER         策略回测 vs 买入持有
     finloop eventstudy TICKER       信号事件研究
     finloop research [--synthetic]  批量回测研究报告（横截面/情景压测）
+    finloop dca TICKER              定投/分批入场回测（大顶案例+滚动起点+起点状态分桶）
 """
 
 from __future__ import annotations
@@ -310,6 +312,57 @@ def cmd_size(args):
     print(DISCLAIMER)
 
 
+def cmd_macro(args):
+    """多资产总览：股指/利率/美元/商品/加密/板块 + 相对强弱 + 风险偏好读数。"""
+    from .macro import build_macro_report
+    from .config import reports_dir
+    import datetime as dt
+
+    md = build_macro_report()
+    if args.write:
+        out_dir = reports_dir() / "macro"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        path = out_dir / f"{dt.date.today().isoformat()}.md"
+        path.write_text(md, encoding="utf-8")
+        print(f"多资产总览已写入：{path}")
+    else:
+        print(md)
+
+
+def cmd_dca(args):
+    """定投/分批入场回测：历史大顶案例 + 滚动起点分布 + 起点状态分桶。"""
+    from .backtest.dca import format_dca_report
+    from .data import get_daily
+    from .data.service import default_service
+    from .config import reports_dir
+    import datetime as dt
+
+    df = get_daily(args.ticker, period="max")
+    if df.empty:
+        print(f"{args.ticker} 无数据"); return
+    adj = getattr(default_service, "last_adjustment", None)
+    src = getattr(default_service, "last_source", "?")
+    if adj not in (None, "full"):
+        print(f"❌ 数据源 {src} 的复权口径为 {adj}，长周期定投研究要求全复权（含分红再投资），拒绝运行。")
+        return
+    # 用**收盘峰值日**而非盘中高点日：起点若在峰前几天，一次性投入会先「浮盈」几天，
+    # 把回本年数算成 0（平凡解）。纳指系与标普系的峰值日不同，按标的分组。
+    if args.ticker.upper() in ("QQQ", "QQQM", "SMH", "SOXX", "XLK", "ONEQ"):
+        cases = {"科网泡沫顶(NDX收盘峰)": "2000-03-27", "金融危机前顶": "2007-10-31",
+                 "2021成长股顶(NDX收盘峰)": "2021-11-19"}
+    else:
+        cases = {"科网泡沫顶(SPX收盘峰)": "2000-03-24", "金融危机前顶(SPX收盘峰)": "2007-10-09",
+                 "2022年初顶(SPX收盘峰)": "2022-01-03"}
+    md = format_dca_report(args.ticker, df["close"], cases, args.horizon, args.months, args.rf,
+                           source_note=f"，来源 {src}")
+    if args.write:
+        out = reports_dir() / "research" / f"{dt.date.today().isoformat()}_dca_{args.ticker}.md"
+        out.write_text(md, encoding="utf-8")
+        print(f"定投回测已写入：{out}")
+    else:
+        print(md)
+
+
 def cmd_watchlist(args):
     from .config import load_watchlist
     from .data import get_last_quote
@@ -406,6 +459,18 @@ def main(argv: list[str] | None = None):
     p = sub.add_parser("explain", help="指标教学详解")
     p.add_argument("indicator")
     p.set_defaults(func=cmd_explain)
+
+    p = sub.add_parser("macro", help="多资产总览：股指/利率/美元/黄金/原油/加密 + 相对强弱 + 风险偏好读数")
+    p.add_argument("--write", action="store_true", help="写入 reports/macro/YYYY-MM-DD.md 而不是打印")
+    p.set_defaults(func=cmd_macro)
+
+    p = sub.add_parser("dca", help="定投/分批入场回测：一次性 vs 线性 vs 回撤加速 vs 趋势门控")
+    p.add_argument("ticker")
+    p.add_argument("--horizon", type=int, default=10, help="持有期（年），默认 10")
+    p.add_argument("--months", type=int, default=12, help="分批月数，默认 12")
+    p.add_argument("--rf", type=float, default=0.03, help="未投现金年化利率，默认 0.03")
+    p.add_argument("--write", action="store_true", help="写入 reports/research/")
+    p.set_defaults(func=cmd_dca)
 
     p = sub.add_parser("watchlist", help="自选股行情快照")
     p.set_defaults(func=cmd_watchlist)

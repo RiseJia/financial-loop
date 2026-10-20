@@ -1,0 +1,67 @@
+# 多资产总览配置（finloop macro）
+#
+# 每个条目：symbol（首选真实标的）、name、kind（price|yield|level，默认 price）、
+# proxy（真实标的不可得时的 ETF 代理；表中会显式标注「代理」）。
+# 为什么要代理：Tiingo 等备源不覆盖 ^VIX/GC=F/^TNX 这类指数与期货；
+# 但代理≠标的（VIXY/USO 有展期损耗、IEF 是债券价格而非收益率）。
+
+groups:
+  股指:
+    - {symbol: SPY, name: 标普500}
+    - {symbol: QQQ, name: 纳指100}
+    - {symbol: IWM, name: 罗素2000}
+    - {symbol: SMH, name: 半导体}
+    - {symbol: EFA, name: 发达市场(非美)}
+    - {symbol: EEM, name: 新兴市场}
+  利率与信用:
+    - symbol: "^TNX"
+      name: 美债10年期收益率
+      kind: yield
+      proxy: {symbol: IEF, name: 7-10年国债ETF(价格,与收益率反向), kind: price}
+    - symbol: "^IRX"
+      name: 3个月T-bill收益率
+      kind: yield
+    - {symbol: TLT, name: 20年+国债ETF}
+    - {symbol: IEF, name: 7-10年国债ETF}
+    - {symbol: HYG, name: 高收益债ETF}
+    - {symbol: LQD, name: 投资级债ETF}
+  美元与波动率:
+    - symbol: DX-Y.NYB
+      name: 美元指数DXY
+      proxy: {symbol: UUP, name: 美元多头ETF(UUP)}
+    - symbol: "^VIX"
+      name: VIX
+      kind: level
+      proxy: {symbol: VIXY, name: VIX短期期货ETF(含展期损耗), kind: price}
+  商品与另类:
+    - symbol: GC=F
+      name: 黄金期货
+      proxy: {symbol: GLD, name: 黄金ETF(GLD)}
+    - symbol: SI=F
+      name: 白银期货
+      proxy: {symbol: SLV, name: 白银ETF(SLV)}
+    - symbol: CL=F
+      name: WTI原油期货
+      proxy: {symbol: USO, name: 原油ETF(USO,含展期损耗)}
+    - {symbol: DBC, name: 大宗商品综合ETF}
+    - symbol: BTC-USD
+      name: 比特币
+      proxy: {symbol: IBIT, name: 比特币ETF(IBIT)}
+  板块(进攻vs防御):
+    - {symbol: XLK, name: 科技}
+    - {symbol: XLE, name: 能源}
+    - {symbol: XLF, name: 金融}
+    - {symbol: XLV, name: 医疗}
+    - {symbol: XLP, name: 必需消费}
+    - {symbol: XLU, name: 公用事业(含AI电力beta)}
+
+# 相对强弱：分子/分母。比值下行 = 分子跑输。
+relative_pairs:
+  - [SMH, QQQ, 半导体/纳指100（芯片热度）]
+  - [SMH, SPY, 半导体/标普500]
+  - [QQQ, SPY, 纳指100/标普500（成长溢价）]
+  - [IWM, SPY, 小盘/大盘（风险偏好）]
+  - [XLP, SPY, 必需消费/标普500（防御偏好）]
+  - [XLE, SPY, 能源/标普500]
+  - [GLD, SPY, 黄金/标普500]
+  - [HYG, IEF, 高收益债/国债（信用风险偏好）]

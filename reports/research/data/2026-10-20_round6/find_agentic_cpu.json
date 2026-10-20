@@ -1,0 +1,224 @@
+{
+ "topic": "Agent → 本地部署 → CPU → AMD/Intel 论点",
+ "summary": "逐环检验结果：①「agent 火热」成立；②「下一步是低成本本地部署/个人 agent」只部分成立（AI PC 渗透率 2026 年按宽口径约 50-59%、严口径仅 ~28%，本地 agent 拉动的是内存带宽/容量与统一内存 SoC，不是 CPU 核数）；③「tool call 需要很多 CPU」在微观层面不成立（JSON 解析/路由是微秒级，比一次 GPU 生成小 3-5 个数量级，decode 瓶颈是内存带宽）；但一个改写版命题③'「agentic 工作负载在集群层面抬高 CPU:GPU 配比（沙箱/编排/数据/head node）」有厂商与 TrendForce 证据（1:8→1:4，甚至喊 1:1），属「部分成立、独立实测缺失」。④ 因此「AMD/Intel 可买」不能从①②③推出，必须单独立论：AMD 2026 年的暴涨（一年 +293%，trailing PE ~154x，现价约 $560-595）主因是 Instinct GPU/Helios 与 EPYC 份额（Mercury Q2'26 EPYC vs Xeon 单位份额 46.4%），而非 tool call；Intel DCAI +59% 主要靠服务器 ASP +48%（供给短缺、CEO 称只能满足 50% 需求），forward PE 46-60x 建立在被压低的 EPS 上，距 52 周高点 $142.35 已回撤约 35%。市场已经在为「CPU 受益于 agent」定价（AMD 服务器 CPU TAM 半年内从 $60B→$120B→$200B 三连上修、2027 EPS 一致预期 90 天内 +18%），当前股价与估值的分歧点在于兑现速度与周期性。本轮 web 搜索预算中途耗尽、直连抓取被策略拦截，部分估值口径数据未能核实，已列入 unavailable。",
+ "facts": [
+  {
+   "claim": "AMD 2026Q2（截至 6/27）营收与分部：总营收 $11.536B（+50% YoY）；Data Center $6.718B（+107% YoY，+16% QoQ，占 58%，驱动=EPYC+MI350）；Client $3.062B（+23%）；Gaming $779M（-31%）；GAAP EPS $1.38；Q3 指引 ~$13.0B ±$0.3B（中值 +41% YoY）",
+   "value": "DC +107% / Client +23% / Q3 guide $13B",
+   "asof": "2026-08-04",
+   "source_url": "https://finance.yahoo.com/markets/stocks/articles/amd-q2-2026-earnings-record-202927876.html",
+   "confidence": "high"
+  },
+  {
+   "claim": "AMD 管理层 Q2 电话会：服务器（EPYC）收入预计 2026 下半年 >80% YoY、2027 全年 >70%；数据中心分部 2027 年收入翻倍以上；Lisa Su 原话 'Demand for both accelerators and CPUs is growing well above our prior expectations'",
+   "value": "服务器 2H26 >+80%，2027 >+70%",
+   "asof": "2026-08-04",
+   "source_url": "https://www.cnbc.com/2026/08/04/amd-earnings-report-q2-2026.html",
+   "confidence": "high"
+  },
+  {
+   "claim": "AMD 服务器 CPU TAM 口径三连上修：2026-05 Q1 电话会把 2030 年服务器 CPU TAM 从 ~$60B 上调至 >$120B（CAGR 从 18% 提到 >35%），理由为 agentic AI 需要 CPU 管理 agent、处理数据与 head node；2026-10 OCP 峰会再提到 >$200B（2030）",
+   "value": "$60B → $120B → $200B（2030E）",
+   "asof": "2026-10",
+   "source_url": "https://www.datacenterdynamics.com/en/news/amd-posts-q1-2026-data-center-revenue-of-58bn-forecasts-120bn-server-cpu-income-by-2030/",
+   "confidence": "medium"
+  },
+  {
+   "claim": "AMD CEO 公开立场：agentic AI 使 CPU:GPU 比例向 1:1 靠拢，CPU 需求增长对加速器需求是 'largely additive'（非替代）",
+   "value": "1:1 配比叙事（厂商口径）",
+   "asof": "2026（Q1-Q2 期间多次表态）",
+   "source_url": "https://wccftech.com/amds-lisa-su-pushes-back-on-gpu-cannibalization-fears-calling-agentic-ais-cpu-surge-largely-additive-to-accelerator-demand/",
+   "confidence": "medium"
+  },
+  {
+   "claim": "Intel 2026Q2（7/23 发布）：营收 ~$16.1B（+25% YoY，15 年最强增速，高出指引中值 $1.8B）；DCAI $6.3B（+59% YoY，营业利润 $2.5B / 40%），其中服务器 ASP +48%、出货量 +9%（超大规模客户需求）；CCPG（客户端+物理 AI）$8.9B（+13%，客户端出货量 -8%、ASP 靠高端组合上升）；Foundry $5.8B（+31%）；Q3 指引营收 $15.8-16.8B、非 GAAP 毛利率 42%、非 GAAP EPS $0.38",
+   "value": "DCAI +59%（ASP +48% / 量 +9%）",
+   "asof": "2026-07-23",
+   "source_url": "https://www.sec.gov/Archives/edgar/data/0000050863/000005086326000157/intc-20260627.htm",
+   "confidence": "high"
+  },
+  {
+   "claim": "Intel Q3 2026 财报日期官方确认：2026-10-29 盘后，电话会 2pm PDT（10/6 公告）；AMD Q3 财报日期尚未官方确认，第三方预估 2026-11-03，Q3 EPS 一致预期各源分歧大（$1.42-$1.87），营收一致 ~$13.0B",
+   "value": "INTC 10/29；AMD ~11/03（未确认）",
+   "asof": "2026-10-20",
+   "source_url": "https://www.intc.com/news-events/press-releases/detail/1782/intel-to-report-third-quarter-2026-financial-results",
+   "confidence": "high"
+  },
+  {
+   "claim": "Intel CEO Lip-Bu Tan 于 Splunk 大会（丹佛）表示 'CPU demand is so high that we can only supply 50% of customers'；另在 JPMorgan 活动引述客户 'Some of them tell me it's 4 to 1. Four CPU to one GPU'（方向表述各源不一致：Wccftech 称其在 Q2 财报说 AI 训练 GPU:CPU 降到 4:1）",
+   "value": "仅能满足 50% 客户需求；客户称配比 4:1",
+   "asof": "2026-09-14",
+   "source_url": "https://www.calcalistech.com/ctechnews/article/6bjuvbxxf",
+   "confidence": "medium"
+  },
+  {
+   "claim": "Tom's Hardware 综述：Intel Q1 2026 财报口径称 CPU:GPU 部署比从 1:8 向 1:4 移动；Intel 已把部分产能从消费级转向 Xeon；Arm 估计传统 AI 数据中心约 30M CPU 核/GW，agentic 时代升至 120M 核/GW；Morgan Stanley 预计 2030 年前数据中心 CPU 增量需求 $32.5-60B；Fusion Worldwide（分销商，带利益相关）称 Intel 分销渠道仅能履行年度配额 ~40%",
+   "value": "1:8 → 1:4（Intel 口径）；30M→120M 核/GW（Arm 口径）",
+   "asof": "2026-06",
+   "source_url": "https://www.tomshardware.com/pc-components/cpus/shifting-need-for-cpus-in-ai-workloads-drives-intensifying-shortages-price-hikes",
+   "confidence": "medium"
+  },
+  {
+   "claim": "TrendForce 2026-06 报告称推理集群 CPU:GPU 配比正从 1:8 向 1:1 上升（二手转述，原文措辞未能核实；trendforce.com 直连被策略拦截）",
+   "value": "1:8 → 1:1（推理集群，分析机构口径）",
+   "asof": "2026-06-15",
+   "source_url": "https://www.trendforce.com/insights/agentic-ai-cpu-gpu",
+   "confidence": "low"
+  },
+  {
+   "claim": "Mercury Research 2026Q2 服务器 CPU 份额：AMD 全口径单位份额 34.5%（+1.3pp QoQ，+7.3pp YoY）；仅 EPYC vs Xeon 单位份额 46.4%（+2.9pp QoQ，+9.2pp YoY）；服务器收入份额创纪录 46.2%",
+   "value": "AMD 服务器单位份额 34.5% / EPYC-vs-Xeon 46.4%",
+   "asof": "2026Q2（8 月发布）",
+   "source_url": "https://www.techpowerup.com/349029/amd-epyc-cpus-reach-record-server-revenue-share-of-46-2",
+   "confidence": "high"
+  },
+  {
+   "claim": "Mercury Research 2026Q2 客户端：桌面 CPU 出货量 -20%（元件成本高企），AMD 在各分部创历史份额纪录；Intel 向笔记本市场大量铺货",
+   "value": "桌面出货 -20% YoY",
+   "asof": "2026Q2",
+   "source_url": "https://www.tomshardware.com/pc-components/cpus/desktop-cpu-shipments-crater-20-percent-amid-high-component-costs-but-amd-gains-record-share-despite-ugly-desktop-processor-market-intel-floods-laptop-market-with-millions-of-cpus-but-amd-still-sets-all-time-share-records",
+   "confidence": "medium"
+  },
+  {
+   "claim": "Arm 在数据中心的侵蚀：GMI 估 2025 年 Arm 占数据中心 CPU 收入 ~17.7%；IDC 口径（含与加速器捆绑的 Grace Blackwell 等 Arm 平台）Arm 服务器接近一半市场收入；Arm CFO 在 Computex 2026 称超大规模云厂 CPU 算力份额约 50%（公司自述）",
+   "value": "Arm DC CPU 收入份额 ~17.7%（2025）；捆绑口径 >45%",
+   "asof": "2026-06-02",
+   "source_url": "https://www.tomshardware.com/desktops/servers/arm-servers-capture-over-45-percent-of-data-center-market-revenue-gpu-clusters-and-high-end-ai-infrastructure-fuel-a-tectonic-shift-away-from-x86",
+   "confidence": "medium"
+  },
+  {
+   "claim": "NVIDIA 参考设计的 host CPU 配比（公开规格，训练知识，本轮未重新核实）：HGX/DGX 8-GPU x86 机型为 2 颗 CPU / 8 GPU = 0.25 CPU/GPU（64-96 核件 → 16-24 核/GPU）；GB200 NVL72 为 36 颗 Grace（各 72 核 Arm）/ 72 GPU = 0.5 CPU/GPU、36 核/GPU，且全部为 Arm 非 x86",
+   "value": "HGX 0.25 CPU/GPU（x86）；NVL72 0.5 CPU/GPU（Arm）",
+   "asof": "2026-06（知识截止）",
+   "source_url": "https://www.nvidia.com/en-us/data-center/gb200-nvl72/",
+   "confidence": "medium"
+  },
+  {
+   "claim": "本地推理硬件内存带宽（决定 decode tok/s）：AMD Strix Halo（Ryzen AI Max+ 395）理论 256 GB/s、实测 ~215 GB/s；Apple M4 Max 546 GB/s；RTX 5090 1,792 GB/s；实测：Qwen3-30B-A3B（MoE，激活 3B）在 Strix Halo 72-75 tok/s；8B Q4 在 Strix Halo ~52 tok/s 上限、4090 ~200、5090 ~365（带宽推算）；Llama2-7B Q4_0 在 RTX 5090 290-300 tok/s vs M5 Max ~120 tok/s",
+   "value": "带宽 215 / 546 / 1792 GB/s → tok/s 近似按带宽线性",
+   "asof": "2026（各基准发布时间 2025-03 至 2026）",
+   "source_url": "https://llm-tracker.info/AMD-Strix-Halo-(Ryzen-AI-Max+-395)-GPU-Performance",
+   "confidence": "medium"
+  },
+  {
+   "claim": "推理引擎的 CPU 侧开销是工程问题而非硬件堆核问题：WukLab 测量旧版 vLLM 的 CPU 调度开销可占端到端推理时间一半以上（主要是张量前后处理），SGLang 最多 5.6%；XGrammar 论文显示语法约束解码（JSON/tool-call 格式）在旧 Outlines 实现下随 batch 增大显著拖慢 TPOT，XGrammar 把逐 token 掩码生成降到微秒级",
+   "value": "vLLM(v0) 调度开销 >50% vs SGLang ≤5.6%",
+   "asof": "2024-2025（研究发布日期，约 770 天前）",
+   "source_url": "https://mlsys.wuklab.io/posts/scheduling_overhead/",
+   "confidence": "medium"
+  },
+  {
+   "claim": "AI PC 渗透率 2026 预测口径差异巨大：Gartner（2026-05 修订）54.7%、约 143.1M 台（2025 年 8 月原预测 2025 年底 31%）；Counterpoint 'AI Advanced PC' ~59%（2025 年 ~39%）；Canalys 43.5%（仅计 40+ TOPS NPU，二手转述）；Morgan Stanley ~28%（仅计 Copilot+ 且实际启用 AI 功能）；IDC 仅见中国 2026 年 22M 台、52% 渗透；CIO Dive 报道企业 AI PC 采购 2026 年放缓",
+   "value": "28%（严口径）~ 59%（宽口径）",
+   "asof": "2026-05 至 2026-08",
+   "source_url": "https://counterpointresearch.com/en/reports/ai-advanced-pcs-to-surpass-half-of-global-shipments-in-2026",
+   "confidence": "medium"
+  },
+  {
+   "claim": "Arm PC 份额：TrendForce（2026-06-04）预测 Windows on Arm AI 笔记本渗透率 2025 年 1.2% → 2026 年 3.2% → 2029 年 11.5%；含 Apple M 系列与 Chromebook 的 Arm 笔记本份额 2029 年达 34.2%；NVIDIA N1/N1X 在 Computex 2026 发布、OEM 机型预计 2H26；Qualcomm 独占期已到期",
+   "value": "WoA 2026E 3.2%；全 Arm 笔记本 2029E 34.2%",
+   "asof": "2026-06-04",
+   "source_url": "https://www.trendforce.com/presscenter/news/20260604-13081.html",
+   "confidence": "medium"
+  },
+  {
+   "claim": "Intel 18A/14A 状态：18A 已在 Fab 52 量产，Panther Lake 2026-01 上市；18A-P 芯片 2026-06 投产；良率传闻 ~80%（GF Securities，Q2 约 65%）、Pitzer 称每月提升 ~7%；CFO Zinsner 称良率要到 2026 年底最早才达到盈利成本阈值；14A 目标 2027 风险投产，CEO 称 'going big time into 14A' 暗示外部客户；Terafab（Tesla/SpaceX）采用 14A 为单源未证实",
+   "value": "18A 良率 ~80%（传闻）但尚未达盈利阈值",
+   "asof": "2026-09（最近报道约一个月前）",
+   "source_url": "https://finance.biggo.com/news/ab78c740-7aaa-46bf-825a-2669715e1ff9",
+   "confidence": "low"
+  },
+  {
+   "claim": "AMD 股价与估值（多源、口径冲突）：10/12 收盘 $594.24；10/16 报道前一周下跌 9%、未能守住 $600，报价 $562.23，trailing PE ~154x；forward PE 24/7 Wall St 称 40x、FinanceBuzz 称 >85x（分母年份/GAAP 口径不同）；2027 EPS 一致预期从 90 天前 $13.28 升至 $15.72（+18%）；Yahoo 2027 均值 $15.76（50 位分析师，区间 $9.60-20.25）；按 $562 / $15.72 计 2027 PE ≈ 35.8x",
+   "value": "~$562-594；trailing ~154x；2027E PE ~36x",
+   "asof": "2026-10-16",
+   "source_url": "https://247wallst.com/investing/2026/10/16/amds-price-action-around-600-is-telling-investors-something-specific/",
+   "confidence": "medium"
+  },
+  {
+   "claim": "AMD 一年涨幅 +293%（Yahoo/24/7 Wall St 文章标题，具体 as-of 日未显示）；2026-07-10 时 YTD +144%；2026-07-29 时 Intel YTD +124%、AMD YTD +100%",
+   "value": "AMD 1Y +293%；7 月末 INTC YTD +124% / AMD +100%",
+   "asof": "2026-07-29（YTD）/ 2026-10（1Y）",
+   "source_url": "https://247wallst.com/investing/2026/07/29/intel-stock-is-up-124-this-year-and-amd-is-up-100-is-the-nasdaq-correction-a-take-profit-signal/",
+   "confidence": "medium"
+  },
+  {
+   "claim": "Intel 股价与估值：10/13 收盘 $102.81（约 60x forward、9.5x P/S）；10/14 GuruFocus forward PE 45.81（行业中位 23.9）；10/16 收盘 $89.85（-5.8%）；10/19 收盘 $92.03、forward PE 53.59；52 周区间 $32.89-$142.35（现价距高点约 -35%）；trailing EPS 为负",
+   "value": "$92.03；forward PE 46-60x；距 52w 高 -35%",
+   "asof": "2026-10-19",
+   "source_url": "https://stockanalysis.com/stocks/intc/",
+   "confidence": "medium"
+  },
+  {
+   "claim": "同业与大盘参照（本地 finloop 日报，yfinance 收盘）：NVDA $217.09、AVGO $334.59（10/19，均处空头动量、AVGO 10/15 死叉）；半导体 ETF（SMH 代理）YTD +52.3%、近 1 周 -7.2%、52 周位置 66%；科技板块近 1 周 -5.3%；10 年期美债 5.14%（YTD +97bp）",
+   "value": "SMH YTD +52.3% / 1W -7.2%；10Y 5.14%",
+   "asof": "2026-10-20",
+   "source_url": "file:///home/user/financial-loop/reports/macro/2026-10-20.md",
+   "confidence": "high"
+  },
+  {
+   "claim": "AMD 2026 年重大 GPU 侧事件（本地日报新闻头条，仅标题级）：7/22 Anthropic 与 AMD 签重大 AI 芯片协议、同日 AMD 拿下 Microsoft 订单；7/23 Lisa Su 发布 Helios 机柜路线图；6/18 特朗普称 Apple 与 Intel 达成美国芯片协议、Intel 创纪录新高",
+   "value": "AMD 涨幅催化=GPU/机柜订单；Intel 催化=代工客户叙事",
+   "asof": "2026-07-23",
+   "source_url": "file:///home/user/financial-loop/reports/2026-07-22.md",
+   "confidence": "medium"
+  },
+  {
+   "claim": "Intel CEO 称 AI 硬件短缺将持续 2-3 年且行业须证明 ROI；JPMorgan 将 Intel 上调至 Neutral，理由为 agentic AI 需求推动盈利上修；Intel 定制芯片（purpose-built silicon）业务年化约 $2B、目标 $4B",
+   "value": "短缺 2-3 年（CEO 口径）",
+   "asof": "2026-09",
+   "source_url": "https://wccftech.com/intel-ceo-lip-bu-tan-warns-ai-hardware-shortage-will-last-two-to-three-years-says-sector-has-to-show-return-on-investment/amp/",
+   "confidence": "medium"
+  },
+  {
+   "claim": "AMD Q2 2026 非 GAAP EPS $1.66 vs 预期 $1.55；营收 $11.54B vs 预期 $11.28B",
+   "value": "EPS beat $0.11",
+   "asof": "2026-08-04",
+   "source_url": "https://chartrow.com/quote/amd/earnings",
+   "confidence": "medium"
+  }
+ ],
+ "interpretations": [
+  "【环① agent 火热：成立】两家 CPU 厂商、Arm、NVIDIA、TrendForce、JPMorgan 都在用 agentic 解释 CPU 需求；Daytona 等 'agentic cloud' 基础设施公司估值达 $1B（Fortune 2026-10-20）。这一环没有争议，但要注意它同时也是所有卖方叙事的共同前缀。",
+  "【环② 本地部署/个人 agent 是下一步：部分成立】证据只支持 'AI PC 硬件在铺货'（宽口径 ~50-59%），不支持 '本地 agent 成为主流用法'：严口径（实际启用 AI 功能）仅 ~28%，企业采购 2026 放缓，Windows on Arm 仅 3.2%。物理上，本地 decode 是 memory-bound：8B@4-bit 每 token 需搬运 ~4.5-5 GB 权重，DDR5 双通道（~90 GB/s 理论）上限 ~18-20 tok/s、实测 10-15；Strix Halo（~215 GB/s 实测）~50；M4 Max（546 GB/s）~80-100；RTX 5090（1.8 TB/s）~300。30B 稠密模型在纯 CPU 上 <5 tok/s 不可用，只有 MoE（如 30B-A3B）才能在统一内存 SoC 上跑到 70+ tok/s。结论：本地 agent 拉动的是「内存带宽 × 内存容量」（统一内存 SoC、消费级 GPU、每台多装的 LPDDR/DRAM），CPU 核数对 tok/s 几乎无影响（推论：8 核换 24 核同代 CPU，内存不变，tok/s 基本不变）。AMD/Intel 在此的受益口径是客户端 SoC 平台（Strix/Panther Lake）通过换机与 ASP 兑现，而 Intel Q2 客户端量 -8%、桌面市场 -20% 说明目前更像 '涨价缩量' 而非 '需求爆发'。",
+  "【环③ tool call 需要很多 CPU：不成立（微观）】数量级估算（batch=1，假设已注明）：tokenizer ~1 µs/token（10k token ≈ 10 ms，CPU）；prefill 为 compute-bound（8B × 4k token ≈ 64 TFLOP：4090 按 50% 利用率 ~0.8 s，16 核 AVX-512 CPU ~30-60 s）；decode 为 memory-bound（见上，CPU 上一段 300 token 的 tool-call 响应 ≈ 15-30 s，4090 ≈ 2 s）；解析 1 KB tool-call JSON ≈ 1-50 µs（simdjson~1 GB/s；Python json 也只需几十 µs）；路由/参数校验/权限 µs-ms；结果回填后的增量 prefill 仅处理新增 token（KV cache 复用）<0.1 s。即 '调用链路' 上的 CPU 活跃时间每步 1-20 ms，比 GPU 生成时间小 3-5 个数量级；工具执行中真正 CPU-bound 的是跑测试/编译/数据处理（秒到分钟级），但那是 agent 出现前就有的普通软件负载，网页抓取等则是 IO 等待（CPU 空转）。数据中心侧 WukLab 测到的 'CPU 调度开销 >50%' 属推理引擎工程缺陷（已被异步调度/CUDA graph/SGLang 重叠解决），解法是改代码而不是多买 CPU，每张 GPU 对应的此类 host CPU 需求是个位数核。",
+  "【环③' 改写版：agentic 工作负载抬高集群层面的 CPU 配比：部分成立、缺独立实测】1:8→1:4→1:1 的说法全部来自有卖 CPU 动机的主体（Intel、AMD、Arm）或分析机构转述；它指的是 '每 GPU 对应的通用 CPU 服务器数'（agent 沙箱/容器、编排、检索、数据管道、KV offload 主机、head node），不是 GPU 机箱内的 host CPU 配比（后者由 NVIDIA 参考设计决定：HGX 0.25 x86/GPU，NVL72 0.5 Arm/GPU，x86 归零）。真实可核的 '硬证据' 只有：Intel 服务器 ASP +48%/量 +9%（价涨量微增=短缺定价而非量爆发）、Intel 自称只能供 50%、AMD 服务器收入指引 +80%/+70%、Mercury 份额快速向 AMD 转移。合理解读：CPU 需求确实在再加速，但驱动因素是 '通用算力总量 + 供给侧收缩（Intel 产能转移、代工节奏）+ 推理集群数据预处理'，tool call 本身在其中可忽略。推理链得到了部分正确的结论，但理由是错的——这会让持有者在错误的信号上加减仓。",
+  "【环④ AMD/Intel 可买：不能由前三环推出】AMD 过去一年的 +293% 由 MI350/MI450/Helios 机柜与 OpenAI/Anthropic/Microsoft 订单驱动，EPYC 份额提升是第二引擎；'CPU 受益于 agent' 已被公司以 TAM 三连上修（$60B→$120B→$200B，6 个月内）的方式主动定价进叙事。估值上：trailing ~154x、2027E ~36x（若 forward PE 85x 的口径为 2026 GAAP，则隐含 2026 EPS 仅 ~$6.6-7），2027 EPS 90 天内 +18% 的同时股价一周 -9%，说明估值扩张阶段可能已转为 '盈利上修追估值' 阶段。Intel：DCAI 40% 营业利润率靠短缺 ASP，客户端缩量；forward PE 46-60x 建立在极低 EPS 基数（Q3 指引非 GAAP EPS $0.38）上，是 '盈利修复期权' 定价；-35% 的回撤说明市场已开始对 '只能供 50% 需求' 做负面解读（供不上的需求会流向 AMD/Arm）。两者的 agent-CPU 叙事边际信息量已低，决定因素回到 GPU 份额（AMD）与良率/代工客户（Intel）。",
+  "【多空论点与分辨数据】AMD 真正多头：EPYC 单位份额从 46% 继续向 50%+（Mercury 季度数据）、服务器收入兑现 >80%/70% 指引、MI450/Helios 2H26-2027 量产与良率、数据中心 2027 翻倍；真正空头：154x trailing 对执行零容错、Rubin 世代 GPU 份额回落、CPU ASP 周期性（短缺缓解即回落）、Arm/Vera/Graviton 分流、云厂 capex 增速放缓（框架总闸门）。Intel 真正多头：短缺期定价权（ASP）、18A 良率在 2026 年底跨过盈利阈值、14A/Apple 等外部代工客户落地、1:4 配比若被云厂独立证实；真正空头：供不应求=份额继续流失给 AMD、良率/成本阈值延期、客户端量跌、Arm PC 与 N1X 侵蚀高端 Windows 本、估值已透支修复。可分辨的数据：(1) Intel 10/29 与 AMD ~11/03 财报中服务器 '量 vs 价' 拆分及 Q4 指引；(2) Mercury 季度份额；(3) NVIDIA 出货中 NVL（Arm）vs HGX（x86）比例；(4) 云厂通用实例 vs 加速实例增速（AWS/Azure 不直披，用 DCAI/EPYC 增速与 capex 结构差推算）；(5) 分销渠道配额履行率与现货溢价（短缺是否缓解）；(6) AI PC ASP 与 ≥32 GB 内存机型占比（同为 DRAM 节点触发器）；(7) 2027 EPS 修正方向与估值倍数的背离。",
+  "【与现金仓位读者的关系】这条链条最有价值的教训是方法论：'X 火 → X 需要 Y → 卖 Y 的公司可买' 中间一环必须用物理/经济数量级检验。本轮检验表明，如果非要从 '个人 agent' 找硬件受益者，顺序是：内存（容量+带宽）> 统一内存 SoC 平台（AI PC 换机）> 通用云 CPU（AMD 份额）> 'CPU 因 tool call 受益'。而当前时点（SMH 一周 -7%、科技板块领跌、10Y 5.14%）两只 CPU 股都处在高估值 + 动量转空 + 财报前的组合，属于观察数据而非行动的窗口。"
+ ],
+ "implications_for_framework": [
+  "在 config/research_state.yaml 新增节点 `cpu_agentic_compute`（标签：Agent→CPU 需求传导），evidence 至少收录：AMD Q2'26 DC $6.718B(+107%)/服务器指引 2H26 >+80%、2027 >+70%（asof 2026-08-04）；Intel Q2'26 DCAI $6.3B(+59%)，ASP +48%/量 +9%（asof 2026-07-23）；Mercury Q2'26 EPYC-vs-Xeon 单位份额 46.4%（asof 2026-08）；Intel CEO '只能供 50%'（asof 2026-09-14）；AMD 服务器 CPU TAM $60B→$120B→$200B（asof 2026-05/2026-10）；CPU:GPU 1:8→1:4 为厂商口径、未独立证实（asof 2026-06）。",
+  "该节点 triggers 建议：(a) Mercury 季度 AMD 服务器单位份额环比增幅 <1pp（份额转移放缓）→ warning；(b) Intel/AMD 财报服务器 '量增' 转负而仅靠 ASP（短缺定价见顶）→ warning；(c) 分销渠道配额履行率回升至 >80% 或服务器 CPU 现货溢价消失（短缺缓解）→ warning；(d) NVIDIA 出货中 NVL（Grace）占比超过 HGX（x86 host 需求归零加速）→ warning；(e) 任一云厂披露的 CPU:GPU 配比独立数据（证实或证伪 1:4）→ 直接改写节点结论；(f) AI PC ≥32 GB 机型占比与 ASP（与 hbm_memory 节点联动）。",
+  "修订 docs/chain/09_Agent与CPU.md 第 3 节：'渠道 A（GPU 服务器 host CPU）弱' 的判断对机箱内配比仍成立，但需新增 '渠道 B 的规模证据' 段落——Intel/AMD/TrendForce 的 1:8→1:4/1:1 集群级配比口径、Intel 50% 供给缺口、AMD TAM 三连上修，并明确标注 '卖方口径、独立实测缺失'；第 4 节评分表增加一行环③'（集群级 CPU 配比）判定 '部分成立'；第 5 节补充 '推理链结论部分正确但理由错误' 的风险提示（在错误信号上交易）。",
+  "日历节点写入监控：Intel Q3 财报 2026-10-29 盘后（看 DCAI 量/价拆分、Q4 指引、18A 良率与成本阈值表述、客户端量）；AMD Q3 财报约 2026-11-03（未确认；看服务器增速 vs +80% 指引、DC 内 GPU/CPU 拆分方向、MI450/Helios 进度、Q4 指引）；Mercury Q3'26 份额报告（11 月）；TrendForce 服务器 CPU 季度出货。",
+  "估值监控纪律：AMD/INTC 的 forward PE 多源口径冲突（AMD 40x vs 85x；INTC 46x vs 54x vs 60x），日报或 `finloop analyze` 引用 yfinance forwardPE 时必须注明分母年份与 GAAP/非 GAAP，沿用 2026-06-11 估值核验报告确立的 '先核分母再采信' 规则；建议在 universe_ai 的算力芯片子链为 AMD 标签补充 'GPU 二供 + 服务器 CPU 份额' 双引擎，并考虑把 INTC 加入 universe（标签：x86 CPU/代工期权），目前 universe 中无 INTC。",
+  "与 hbm_memory 节点交叉：'本地 agent 真正拉动内存带宽/容量' 的结论强化了 DRAM 作为更干净受益者的判断，但该节点已记录 MU 估值极端（峰值即新常态定价），因此行动含义是 '监控而非加仓'；可在 frontier 增加 'AI PC 每台内存配置与 LPDDR5X 合约价' 跟踪项。",
+  "流程记录：本轮 web 搜索预算在中途耗尽、WebFetch 被代理策略拦截（stockanalysis/sec.gov/yahoo/trendforce 均 403），部分估值与配比原文未能核实（见 unavailable）；下一轮应优先用剩余预算补 AMD 2026 EPS 一致预期与 3 个月修正、INTC 2026/2027 EPS 一致预期、NVDA/AVGO/QCOM forward PE、美国政府持股与 NVIDIA 合作最新状态。"
+ ],
+ "open_questions": [
+  "Intel 口径的 CPU:GPU 1:8→1:4 与 AMD/TrendForce 的 1:1 到底指 '机箱内 host CPU'、'机架级' 还是 '集群级（含沙箱/数据服务器）'？有没有任何云厂或第三方（如 SemiAnalysis、Omdia）的独立实测配比？这是环③' 从 '部分成立' 升为 '成立' 的唯一通道。",
+  "Intel 服务器 ASP +48% 中，多少来自产品组合（Granite Rapids 高核数）、多少来自短缺定价？短缺缓解后 ASP 回落幅度多大？Intel 10/29 财报的 '量 vs 价' 拆分是关键。",
+  "AMD 2027 EPS 一致预期 $15.7 中 GPU（Instinct）与 CPU（EPYC）各贡献多少？若 Rubin 世代 GPU 份额回落，EPYC 能否独立支撑 36x 的 2027 倍数？",
+  "AMD forward PE 40x 与 85x 的分歧具体来自哪个分母（2026 GAAP vs 2027 非 GAAP）？需要原始数据源核对后才能与 NVDA/AVGO/QCOM 横向比较。",
+  "Intel 18A 良率 '2026 年底达到盈利成本阈值' 是否如期？Panther Lake 对 CCPG 毛利率的影响方向（初期拖累 vs 后期改善）？14A 外部客户（Apple/Terafab 传闻）是否有具名确认？",
+  "美国政府持股与 NVIDIA 对 Intel 投资/合作（x86 RTX SoC、定制 Xeon）在 2026-10 的最新状态如何？是否已产生可见的收入或产能承诺？本轮未能检索到。",
+  "AI PC 的实际 '本地 AI 使用率'（Morgan Stanley 严口径 28%）与宽口径硬件渗透率（55-59%）的差距会否收敛？若不收敛，'本地 agent' 这一环的权重应进一步下调。",
+  "NVIDIA N1X Arm 笔记本在 2H26 的实际出货与高端 Windows 份额——这决定了 Intel/AMD 客户端 ASP 故事的上限。"
+ ],
+ "unavailable": [
+  "AMD 2026-10-19/20 精确收盘价、52 周高点数值与日期、YTD 涨幅（搜索预算耗尽，stockanalysis/yahoo 直连被拦截）",
+  "AMD 2026 年 EPS 一致预期及近 3 个月修正幅度（仅获得 2027 EPS：$13.28→$15.72）",
+  "Intel 2026/2027 EPS 一致预期及近 3 个月修正方向；Intel 52 周高点 $142.35 的发生日期；Intel 2026 YTD 涨幅（仅有 7/29 时 +124% 的旧数据）",
+  "NVDA / AVGO / QCOM 2026-10 的 forward PE 与 2026 YTD 涨幅（仅有 NVDA $217.09、AVGO $334.59 的 10/19 收盘价）",
+  "美国政府持有 Intel 股份的最新状态、NVIDIA $5B 投资与 x86 RTX SoC/定制 Xeon 合作的 2026-10 进展、Apple-Intel 代工协议的后续确认",
+  "TrendForce 2026-06 报告中 CPU:GPU 配比的原文措辞（直连 403，仅二手转述）；Intel Q2 2026 电话会关于 agentic AI 的逐字引文；AMD Q2 2026 电话会关于 agentic 的逐字引文及 'EPYC 售罄至 2026 年底' 的一手确认",
+  "IDC 全球 2026 年 AI PC 渗透率与 AI PC ASP；IDC/Canalys 2026Q3 PC 出货报告（10 月初发布）",
+  "Arm PC（含 Qualcomm Snapdragon X、Apple）2026Q2 实测市场份额（Mercury/IDC）",
+  "AI 服务器 head node 中 Intel Xeon vs AMD EPYC 的份额数据；NVIDIA Vera CPU 独立销售进展",
+  "纯 CPU（Ryzen 9 9950X / Core Ultra 9，DDR5 双通道）与 NPU（Lunar Lake / Ryzen AI）的 llama.cpp 7B/30B Q4 实测 tok/s（本报告使用带宽推算的理论值，已标注为估算）",
+  "GB200 NVL72 / Vera Rubin NVL144 的 CPU 核数配比未在本轮重新核实（使用训练知识中的公开规格）",
+  "服务器 CPU 2026 年涨价幅度与交期的量化数据（Fusion Worldwide/TrendForce 原文）",
+  "AMD Q3 2026 财报官方日期（第三方预估 11/03）"
+ ]
+}
